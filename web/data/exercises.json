@@ -8176,26 +8176,27 @@
     },
     {
       "id": "weighted-plank",
-      "name": "Weighted plank",
+      "name": "Plate-loaded plank",
       "pattern": "core",
-      "level": 3,
+      "level": 2,
       "equipment": [
         "plate|barbell"
       ],
       "reps": [
         "",
-        "",
-        "30s",
-        "45s"
+        "30s each",
+        "40s each",
+        "45s each"
       ],
       "steps": [
         "Set up a forearm plank.",
-        "Have a partner place a plate on your upper back, or slide it on yourself before lifting your hips.",
+        "Your partner lays a plate flat on your upper back, between your shoulder blades.",
         "Hold a dead-straight body line under the weight.",
-        "Lower your knees before the plate comes off."
+        "Your partner takes the plate off before you drop your knees. Switch roles."
       ],
-      "cue": "Keep the plate high on your back, between the shoulder blades, not on your lower back.",
-      "avoid": "Sagging under the weight."
+      "cue": "Partner: keep a hand hovering over the plate.",
+      "avoid": "The plate on your lower back; it slides off and arches your spine.",
+      "partner": true
     },
     {
       "id": "bear-hold",
@@ -10724,6 +10725,75 @@
       "cue": "Drive through your heels and squeeze.",
       "avoid": "Hips sinking as the stack grows.",
       "partner": true
+    },
+    {
+      "id": "weighted-reverse-plank",
+      "name": "Weighted reverse plank",
+      "pattern": "core",
+      "level": 2,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "20s",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Sit with your legs straight and a plate resting flat on your hips, held with one hand.",
+        "Put your hands on the floor behind your hips, fingers pointing toward your feet.",
+        "Lift your hips until your body is a straight line from heels to shoulders, keeping the plate balanced on your hips.",
+        "Hold, then sit back down before taking the plate off. Bend your knees into a tabletop to make it easier."
+      ],
+      "cue": "Squeeze your glutes to keep the hips up under the plate.",
+      "avoid": "Letting your head drop back; look at your toes."
+    },
+    {
+      "id": "weighted-bridge-hold",
+      "name": "Weighted glute bridge hold",
+      "pattern": "hinge",
+      "level": 1,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "30s",
+        "40s",
+        "45s",
+        "60s"
+      ],
+      "steps": [
+        "Lie on your back, knees bent, feet flat, a plate resting on your hips.",
+        "Hold the plate in place with both hands.",
+        "Drive through your heels and lift your hips into a bridge.",
+        "Hold at the top, then lower before removing the plate."
+      ],
+      "cue": "Push your knees slightly out and squeeze.",
+      "avoid": "Arching your lower back instead of using your glutes."
+    },
+    {
+      "id": "weighted-hollow",
+      "name": "Weighted hollow hold",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "20s",
+        "30s"
+      ],
+      "steps": [
+        "Lie on your back holding a light plate with straight arms above your chest.",
+        "Press your lower back into the floor and lift your shoulders and legs.",
+        "Move the plate back toward your head until you feel your abs working hard.",
+        "Hold the banana shape."
+      ],
+      "cue": "The further back the plate goes, the harder it gets.",
+      "avoid": "Lower back peeling off the floor; bring the plate forward if it does."
     }
   ],
   "extras": {
@@ -11100,6 +11170,9 @@
     ],
     "pt-wallsit-plank": [
       "Clear wall space"
+    ],
+    "weighted-reverse-plank": [
+      "Mat"
     ]
   },
   "quantities": {
