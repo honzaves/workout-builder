@@ -130,7 +130,7 @@ function generate(s){
   // Warm-up: pulse raiser, full-body flow, two mobility drills, then a second pulse raiser.
   const pulse=shuffle(["jacks","high-knees","butt-kicks","lat-shuffle","seal-jacks","skip-in-place","a-skip"]),
         flow=shuffle(["inchworm","wgs","dog-cobra","bear-squat","spiderman-reach"]),
-        mob=shuffle(["squat-reach","leg-swings","arm-circles","cat-cow","bridge-w","hip-circles","hip-9090","knee-hug","open-book","scap-pushup","ankle-rocks","lunge-rotate"]);
+        mob=shuffle(["squat-reach","leg-swings","arm-circles","cat-cow","bridge-w","hip-circles","hip-9090","knee-hug","open-book","scap-pushup","ankle-rocks","lunge-rotate","calf-raises","tib-raises"]);
   const warm=[pulse[0],flow[0],mob[0],mob[1],pulse[1]];
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
   const stretch=shuffle(["hip-flexor","figure4","ham-fold","thread","chest-wall","quad-stretch","calf-wall","shoulder-cross","seated-twist","neck-side","cobra-stretch","wrist-stretch"]),
