@@ -22,8 +22,11 @@ PATTERNS = {"warm", "cool", "plyoL", "plyoU", "squat", "hinge", "lunge", "push",
 TIMED = {"warm", "cool"}
 # Slots the generator fills in every block; each needs a bodyweight beginner option.
 CORE_SLOTS = ["plyoL", "squat", "hinge", "lunge", "push", "pull", "core"]
-ALLOWED_FIELDS = {"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
-                  "cue", "avoid", "combo", "slow_to_fast", "partner"}
+# Variables in app.js generate() that hold warm-up / cool-down id lists.
+LIST_SECTIONS = {"warm": "warm", "pulse": "warm", "flow": "warm", "mob": "warm",
+                 "cool": "cool", "stretch": "cool", "yin": "cool", "calm": "cool"}
+ALLOWED_FIELDS ={"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
+                  "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides"}
 
 
 def load(path: Path = DATA_FILE) -> dict:
@@ -62,6 +65,11 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
         if not isinstance(ex.get("steps", []), list) or not all(isinstance(s, str) and s for s in ex.get("steps", [])):
             errors.append(f"{where}: 'steps' must be a list of non-empty strings")
 
+        if "secs" in ex and (pattern not in TIMED or not isinstance(ex["secs"], int) or not 10 <= ex["secs"] <= 600):
+            errors.append(f"{where}: 'secs' must be a whole number of seconds (10-600), on warm-up or cool-down moves only")
+        if "switch_sides" in ex and ex["switch_sides"] is not True:
+            errors.append(f"{where}: 'switch_sides' must be true or left out")
+
         if pattern in TIMED:
             continue
         level = ex.get("level")
@@ -76,6 +84,10 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
         elif level == 4 and len(reps) < 4:
             errors.append(f"{where}: Beast-level exercise needs a 4th reps entry")
 
+    if not any(e.get("sprint") and e.get("pattern") == "plyoL" and e.get("level") == 1 and not e.get("equipment")
+               and not e.get("partner") for e in exercises):
+        errors.append("no bodyweight beginner plyoL sprint; 'Sprints: One per block' could come up empty")
+
     for key in ("extras", "quantities"):
         for ex_id in data.get(key, {}):
             if ex_id not in ids:
@@ -87,12 +99,22 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
             errors.append(f"pattern '{slot}' has no bodyweight beginner exercise; workouts could come up empty")
 
     if app_js:
-        for name in ("warm", "cool"):
-            m = re.search(rf"const {name}=\[(.*?)\];", app_js)
-            if m:
-                for ex_id in re.findall(r'"([a-z0-9-]+)"', m.group(1)):
-                    if ex_id not in ids:
-                        errors.append(f"app.js {name}-up list uses unknown id '{ex_id}'")
+        by_id = {e.get("id"): e for e in exercises}
+        # Id lists in generate(): `name=["id",...]` or `name=shuffle(["id",...])`.
+        found = {"warm": 0, "cool": 0}
+        for var, body in re.findall(r'\b(\w+)=(?:shuffle\()?\[("[^\]]*)\]', app_js):
+            section = LIST_SECTIONS.get(var)
+            if not section:
+                continue
+            for ex_id in re.findall(r'"([a-z0-9-]+)"', body):
+                found[section] += 1
+                if ex_id not in by_id:
+                    errors.append(f"app.js {section}-up list '{var}' uses unknown id '{ex_id}'")
+                elif by_id[ex_id].get("pattern") != section:
+                    errors.append(f"app.js {section}-up list '{var}' uses '{ex_id}', which isn't a '{section}' exercise")
+        for section, n in found.items():
+            if not n:
+                errors.append(f"app.js: couldn't find the {section}-up id lists in generate()")
     return errors
 
 

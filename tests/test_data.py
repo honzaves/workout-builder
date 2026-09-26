@@ -30,6 +30,15 @@ def test_validator_catches_missing_reps_for_own_level():
     assert any("no reps given for its own level" in e for e in validate.validate(data))
 
 
+def test_validator_checks_warmup_lists_in_app_js():
+    data = validate.load()
+    app_js = validate.APP_FILE.read_text(encoding="utf-8")
+    assert any("unknown id 'no-such-move'" in e
+               for e in validate.validate(data, app_js.replace('"high-knees"', '"no-such-move"')))
+    assert any("isn't a 'warm' exercise" in e
+               for e in validate.validate(data, app_js.replace('"high-knees"', '"pushup"')))
+
+
 def test_build_produces_self_contained_html():
     out = build.build()
     html = out.read_text(encoding="utf-8")

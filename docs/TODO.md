@@ -1,5 +1,4 @@
 - Move everything to Database
 - Option to add new exercise manually
 - Option to print the workout
-- Selecting all equipment doesn't mean all has to be used, just opportunities
 - Try to find graphical representation of the movement or generate one

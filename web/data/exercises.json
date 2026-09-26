@@ -80,7 +80,8 @@
         "Swing one leg forward and back 10 times, then side to side 10 times.",
         "Switch legs halfway through."
       ],
-      "cue": "Controlled swings that grow bigger each rep."
+      "cue": "Controlled swings that grow bigger each rep.",
+      "switch_sides": true
     },
     {
       "id": "arm-circles",
@@ -117,6 +118,185 @@
       "cue": "Hips stay level as you march."
     },
     {
+      "id": "high-knees",
+      "name": "High knees",
+      "pattern": "warm",
+      "steps": [
+        "Jog in place, driving your knees up to hip height.",
+        "Pump your arms in rhythm with your legs.",
+        "Stay on the balls of your feet."
+      ],
+      "cue": "Start easy and build the pace. For low impact, march with high knees instead."
+    },
+    {
+      "id": "butt-kicks",
+      "name": "Butt kicks",
+      "pattern": "warm",
+      "steps": [
+        "Jog in place, kicking your heels up toward your glutes.",
+        "Keep your knees pointing down.",
+        "Swing your arms naturally."
+      ],
+      "cue": "Quick, light feet."
+    },
+    {
+      "id": "lat-shuffle",
+      "name": "Lateral shuffle",
+      "pattern": "warm",
+      "steps": [
+        "Stand in a quarter squat, feet hip-width.",
+        "Shuffle three or four steps to one side without letting your feet touch.",
+        "Shuffle back. Keep going side to side."
+      ],
+      "cue": "Stay low; don't bob up and down."
+    },
+    {
+      "id": "seal-jacks",
+      "name": "Seal jacks",
+      "pattern": "warm",
+      "steps": [
+        "Stand with your arms straight out in front of you, palms together.",
+        "Jump your feet out while opening your arms wide to the sides.",
+        "Jump back in, clapping your hands in front."
+      ],
+      "cue": "Squeeze your shoulder blades as your arms open. For low impact, step out instead."
+    },
+    {
+      "id": "skip-in-place",
+      "name": "Skipping in place",
+      "pattern": "warm",
+      "steps": [
+        "Skip gently in place as if you're jumping an imaginary rope.",
+        "Stay on the balls of your feet, knees soft.",
+        "Mix in a few alternating-foot skips."
+      ],
+      "cue": "Tiny, quick, quiet hops."
+    },
+    {
+      "id": "dog-cobra",
+      "name": "Downward dog to cobra",
+      "pattern": "warm",
+      "steps": [
+        "Start in downward dog: hands and feet on the floor, hips high.",
+        "Lower your hips and swoop forward into a cobra, chest up, hips near the floor.",
+        "Push back to downward dog. Keep flowing between the two."
+      ],
+      "cue": "Breathe out into downward dog, breathe in into cobra."
+    },
+    {
+      "id": "bear-squat",
+      "name": "Bear to deep squat",
+      "pattern": "warm",
+      "steps": [
+        "Start on hands and feet in a bear position, knees just off the floor.",
+        "Walk your hands back toward your feet and sit into a deep squat, chest up.",
+        "Put your hands down again and step back to the bear. Repeat."
+      ],
+      "cue": "Let your hips sink as low as they comfortably go in the squat."
+    },
+    {
+      "id": "spiderman-reach",
+      "name": "Spiderman lunge with overhead reach",
+      "pattern": "warm",
+      "steps": [
+        "From a high plank, step your right foot outside your right hand.",
+        "Sink your hips, then lift both hands and reach overhead into a tall lunge.",
+        "Hands back down, step back to plank, and switch sides."
+      ],
+      "cue": "Squeeze the back leg's glute as you reach up."
+    },
+    {
+      "id": "hip-circles",
+      "name": "Standing hip circles",
+      "pattern": "warm",
+      "steps": [
+        "Stand on one leg, holding a wall if you need to.",
+        "Lift the other knee to hip height and draw the biggest circle you can with it, out to the side and back down.",
+        "Do five one way, five the other, then switch legs."
+      ],
+      "cue": "Keep your standing leg and pelvis still; only the hip moves.",
+      "switch_sides": true
+    },
+    {
+      "id": "hip-9090",
+      "name": "90/90 hip switches",
+      "pattern": "warm",
+      "steps": [
+        "Sit with both knees bent at 90 degrees, one leg in front of you and one to the side.",
+        "Keeping your feet on the floor, rotate both knees over to the other side.",
+        "Sit tall and keep switching side to side."
+      ],
+      "cue": "Use your hands behind you at first; take them away when you can."
+    },
+    {
+      "id": "knee-hug",
+      "name": "Walking knee hug",
+      "pattern": "warm",
+      "steps": [
+        "Step forward and pull the opposite knee to your chest with both hands.",
+        "Rise onto the toes of your standing foot.",
+        "Step down and switch legs. Walk forward or stay in place."
+      ],
+      "cue": "Stand tall; don't hunch to reach the knee."
+    },
+    {
+      "id": "open-book",
+      "name": "Open book rotations",
+      "pattern": "warm",
+      "steps": [
+        "Lie on your side with knees bent to 90 degrees and arms straight out in front, palms together.",
+        "Open your top arm up and over to the other side, following it with your eyes.",
+        "Bring it back. Switch sides halfway through."
+      ],
+      "cue": "Keep your knees together and on the floor.",
+      "switch_sides": true
+    },
+    {
+      "id": "scap-pushup",
+      "name": "Scapular push-ups",
+      "pattern": "warm",
+      "steps": [
+        "Set up a high plank, arms straight.",
+        "Without bending your elbows, let your chest sink between your shoulder blades.",
+        "Push the floor away to spread your shoulder blades apart. Repeat slowly."
+      ],
+      "cue": "Arms stay locked; only your shoulder blades move."
+    },
+    {
+      "id": "ankle-rocks",
+      "name": "Ankle rocks",
+      "pattern": "warm",
+      "steps": [
+        "Kneel on one knee with the other foot flat in front of you.",
+        "Rock your front knee forward over your toes, heel staying down.",
+        "Rock back. Switch legs halfway through."
+      ],
+      "cue": "Heel glued to the floor.",
+      "switch_sides": true
+    },
+    {
+      "id": "lunge-rotate",
+      "name": "Reverse lunge with rotation",
+      "pattern": "warm",
+      "steps": [
+        "Step back into a reverse lunge, hands together in front of your chest.",
+        "At the bottom, rotate your chest toward the front leg.",
+        "Turn back to the middle, stand up and switch legs."
+      ],
+      "cue": "Take it slow and go a little deeper each rep."
+    },
+    {
+      "id": "a-skip",
+      "name": "A-skips",
+      "pattern": "warm",
+      "steps": [
+        "Skip forward down the room, driving one knee up to hip height with each skip.",
+        "Keep your standing leg straight and land on the ball of your foot, under your hips.",
+        "Swing your opposite arm with the knee. Walk back and repeat."
+      ],
+      "cue": "Tall posture and quick, springy contacts: this is sprint prep."
+    },
+    {
       "id": "child",
       "name": "Child's pose",
       "pattern": "cool",
@@ -125,7 +305,8 @@
         "Sit your hips back toward your heels and walk your hands forward.",
         "Rest your forehead down and breathe slowly into your back."
       ],
-      "cue": "Long, slow exhales."
+      "cue": "Long, slow exhales.",
+      "secs": 120
     },
     {
       "id": "hip-flexor",
@@ -137,7 +318,8 @@
         "Shift forward gently until you feel a stretch in the front of the right hip.",
         "Switch sides halfway through."
       ],
-      "cue": "Small tuck, big stretch. Don't arch your back."
+      "cue": "Small tuck, big stretch. Don't arch your back.",
+      "switch_sides": true
     },
     {
       "id": "figure4",
@@ -149,7 +331,8 @@
         "Pull your left thigh toward your chest until you feel the stretch in your right hip.",
         "Switch sides halfway through."
       ],
-      "cue": "Keep your head and shoulders relaxed on the floor."
+      "cue": "Keep your head and shoulders relaxed on the floor.",
+      "switch_sides": true
     },
     {
       "id": "ham-fold",
@@ -171,7 +354,8 @@
         "Slide your right arm under your left arm, lowering your right shoulder and temple to the floor.",
         "Hold, then switch sides halfway through."
       ],
-      "cue": "Let your upper back rotate; keep hips over knees."
+      "cue": "Let your upper back rotate; keep hips over knees.",
+      "switch_sides": true
     },
     {
       "id": "chest-wall",
@@ -182,7 +366,285 @@
         "Gently turn your body away until you feel a stretch across your chest.",
         "Switch sides halfway through."
       ],
-      "cue": "Easy pressure only."
+      "cue": "Easy pressure only.",
+      "switch_sides": true
+    },
+    {
+      "id": "quad-stretch",
+      "name": "Side-lying quad stretch",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your side, head resting on your bottom arm.",
+        "Bend your top knee and hold that ankle, pulling your heel toward your glute.",
+        "Push your hip gently forward until you feel the front of the thigh stretch.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Knees stay together.",
+      "switch_sides": true
+    },
+    {
+      "id": "calf-wall",
+      "name": "Wall calf stretch",
+      "pattern": "cool",
+      "steps": [
+        "Stand facing a wall with your hands on it.",
+        "Step one foot back, heel down, back leg straight.",
+        "Lean into the wall until you feel the calf stretch; bend the back knee slightly for the lower calf.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Back heel stays on the floor.",
+      "switch_sides": true
+    },
+    {
+      "id": "shoulder-cross",
+      "name": "Cross-body shoulder stretch",
+      "pattern": "cool",
+      "steps": [
+        "Stand or sit tall.",
+        "Bring one straight arm across your chest.",
+        "Hug it closer with your other forearm just above the elbow.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Keep the stretched shoulder down, away from your ear.",
+      "switch_sides": true
+    },
+    {
+      "id": "seated-twist",
+      "name": "Seated spinal twist",
+      "pattern": "cool",
+      "steps": [
+        "Sit with legs straight, then cross your right foot over your left knee.",
+        "Hug the right knee with your left arm and put your right hand on the floor behind you.",
+        "Sit tall and turn to look over your right shoulder.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Grow tall on every breath in, twist a little further on every breath out.",
+      "switch_sides": true
+    },
+    {
+      "id": "neck-side",
+      "name": "Neck side stretch",
+      "pattern": "cool",
+      "steps": [
+        "Sit tall with your shoulders relaxed.",
+        "Tilt one ear toward its shoulder.",
+        "Rest the same-side hand lightly on your head; let its weight do the work.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Reach the opposite hand toward the floor to deepen it.",
+      "switch_sides": true
+    },
+    {
+      "id": "cobra-stretch",
+      "name": "Cobra stretch",
+      "pattern": "cool",
+      "steps": [
+        "Lie face down with your hands under your shoulders.",
+        "Press your chest up, keeping your hips on the floor.",
+        "Go only as high as feels easy on your lower back."
+      ],
+      "cue": "Shoulders down and away from your ears."
+    },
+    {
+      "id": "wrist-stretch",
+      "name": "Wrist and forearm stretch",
+      "pattern": "cool",
+      "steps": [
+        "Kneel and put your palms on the floor with your fingers pointing back toward your knees.",
+        "Gently lean back until you feel the stretch along your forearms.",
+        "Halfway through, flip your hands over to rest on their backs and lean back again."
+      ],
+      "cue": "Great after grip work. Keep it gentle."
+    },
+    {
+      "id": "yin-butterfly",
+      "name": "Yin butterfly",
+      "pattern": "cool",
+      "steps": [
+        "Sit with the soles of your feet together, heels a comfortable distance from your hips.",
+        "Fold forward with a rounded back, letting your head hang.",
+        "Rest your hands on your feet or the floor and stay still."
+      ],
+      "cue": "Relax every muscle you can; let gravity do the stretching.",
+      "secs": 120
+    },
+    {
+      "id": "yin-caterpillar",
+      "name": "Yin caterpillar",
+      "pattern": "cool",
+      "steps": [
+        "Sit with your legs straight out, knees soft or slightly bent.",
+        "Let your spine round forward over your legs, head heavy.",
+        "Rest your hands wherever they land and stay still."
+      ],
+      "cue": "This isn't a hamstring stretch; let the whole back of your body soften.",
+      "secs": 120
+    },
+    {
+      "id": "yin-dragon",
+      "name": "Dragon (low lunge hold)",
+      "pattern": "cool",
+      "steps": [
+        "Step one foot forward into a low lunge and lower your back knee to the floor.",
+        "Put your hands on the floor or on blocks either side of your front foot.",
+        "Let your hips sink forward and down, and stay.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Pad the back knee with a folded towel.",
+      "secs": 180,
+      "switch_sides": true
+    },
+    {
+      "id": "yin-swan",
+      "name": "Sleeping swan (pigeon)",
+      "pattern": "cool",
+      "steps": [
+        "From hands and knees, bring one knee forward behind its wrist, shin angled across your body.",
+        "Slide the other leg straight back.",
+        "Fold forward over the front leg onto your forearms or forehead.",
+        "Switch sides halfway through."
+      ],
+      "cue": "If your knee complains, do the figure-4 stretch on your back instead.",
+      "secs": 180,
+      "switch_sides": true
+    },
+    {
+      "id": "yin-sphinx",
+      "name": "Sphinx",
+      "pattern": "cool",
+      "steps": [
+        "Lie face down and prop yourself up on your forearms, elbows slightly in front of your shoulders.",
+        "Let your belly and legs relax into the floor.",
+        "Let your head hang or look forward, whichever is comfortable."
+      ],
+      "cue": "A gentle backbend; stay at the height your lower back is happy with.",
+      "secs": 120
+    },
+    {
+      "id": "yin-twist",
+      "name": "Supine twist",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your back and hug one knee to your chest.",
+        "Let that knee fall across your body toward the floor, arms out wide.",
+        "Turn your head the other way if your neck likes it.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Both shoulders stay heavy on the floor.",
+      "secs": 180,
+      "switch_sides": true
+    },
+    {
+      "id": "yin-happy-baby",
+      "name": "Happy baby",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your back and draw your knees wide toward your armpits.",
+        "Hold the outsides of your feet, ankles or shins, soles facing the ceiling.",
+        "Let your lower back and tailbone settle to the floor."
+      ],
+      "cue": "Rock gently side to side if it feels good.",
+      "secs": 120
+    },
+    {
+      "id": "yin-frog",
+      "name": "Frog",
+      "pattern": "cool",
+      "steps": [
+        "Start on hands and knees, then slide your knees wide apart, shins parallel and ankles in line with your knees.",
+        "Lower onto your forearms and let your hips sink back.",
+        "Stay where you feel a strong but easy stretch in your inner thighs."
+      ],
+      "cue": "Pad your knees; this one is intense, so start with your knees closer together.",
+      "secs": 120
+    },
+    {
+      "id": "yin-shoelace",
+      "name": "Shoelace",
+      "pattern": "cool",
+      "steps": [
+        "Sit and stack one knee on top of the other, feet out to the sides.",
+        "Sit evenly on both sit bones.",
+        "Fold forward over your knees as far as is comfortable.",
+        "Switch sides halfway through."
+      ],
+      "cue": "If you can't stack your knees, cross your legs and fold instead.",
+      "secs": 180,
+      "switch_sides": true
+    },
+    {
+      "id": "yin-banana",
+      "name": "Bananasana",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your back, arms overhead.",
+        "Walk your feet and upper body toward the same side, making a banana shape.",
+        "Cross your ankles and hold one wrist with the other hand.",
+        "Switch sides halfway through."
+      ],
+      "cue": "Feel the stretch all along the long side of your body.",
+      "secs": 180,
+      "switch_sides": true
+    },
+    {
+      "id": "savasana",
+      "name": "Savasana",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your back, legs relaxed and falling open, arms slightly away from your body, palms up.",
+        "Close your eyes.",
+        "Let your breathing slow down on its own and let your body get heavy."
+      ],
+      "cue": "Do nothing at all. That's the exercise.",
+      "secs": 90
+    },
+    {
+      "id": "legs-wall",
+      "name": "Legs up the wall",
+      "pattern": "cool",
+      "steps": [
+        "Sit side-on to a wall, then swing your legs up it as you lie back.",
+        "Scoot your hips as close to the wall as is comfortable.",
+        "Let your arms rest out to the sides and breathe slowly."
+      ],
+      "cue": "Great after lots of jumping; let your legs drain.",
+      "secs": 120
+    },
+    {
+      "id": "box-breath",
+      "name": "Box breathing",
+      "pattern": "cool",
+      "steps": [
+        "Sit or lie comfortably.",
+        "Breathe in through your nose for 4 counts, hold for 4.",
+        "Breathe out for 4 counts, hold empty for 4. Repeat."
+      ],
+      "cue": "Slow and smooth; shorten the counts if 4 feels like a struggle.",
+      "secs": 90
+    },
+    {
+      "id": "croc-breath",
+      "name": "Crocodile breathing",
+      "pattern": "cool",
+      "steps": [
+        "Lie face down, forehead resting on your stacked hands.",
+        "Breathe in slowly through your nose, feeling your belly press into the floor and your lower back rise.",
+        "Breathe out slowly and fully. Repeat."
+      ],
+      "cue": "Make every breath out longer than the breath in.",
+      "secs": 90
+    },
+    {
+      "id": "reclined-butterfly",
+      "name": "Reclined butterfly",
+      "pattern": "cool",
+      "steps": [
+        "Lie on your back with the soles of your feet together and your knees falling open.",
+        "Rest one hand on your belly and one on your chest.",
+        "Breathe slowly into the lower hand."
+      ],
+      "cue": "Put a cushion under each knee if your hips feel strained.",
+      "secs": 90
     },
     {
       "id": "snap-down",
@@ -3531,7 +3993,8 @@
       "cue": "The heavy push primes your stride; the sprint should feel faster than normal.",
       "avoid": "Starting the sprint cold. Build up over the first round.",
       "combo": true,
-      "slow_to_fast": true
+      "slow_to_fast": true,
+      "sprint": true
     },
     {
       "id": "bb-pushup",
@@ -4746,7 +5209,8 @@
       ],
       "cue": "Drive your knees and pump your arms; stay leaning forward.",
       "avoid": "Your partner holding so hard that you can't move.",
-      "partner": true
+      "partner": true,
+      "sprint": true
     },
     {
       "id": "pt-tire",
@@ -7347,6 +7811,1334 @@
       "cue": "Breathe on every rep; holding your breath will end the round early.",
       "avoid": "Heavy plates. This is a conditioning complex, not a strength test.",
       "combo": true
+    },
+    {
+      "id": "wt-chop",
+      "name": "Dumbbell or kettlebell woodchop",
+      "pattern": "core",
+      "level": 1,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "8 each side",
+        "10 each side",
+        "12 each side",
+        "15 each side"
+      ],
+      "steps": [
+        "Hold one dumbbell by both ends, or a kettlebell by the horns, above one shoulder with arms long.",
+        "Chop it diagonally across your body to the outside of the opposite knee, bending your knees and pivoting your back foot.",
+        "Drive it back up the same line to above your shoulder.",
+        "Finish all reps, then switch sides."
+      ],
+      "cue": "Turn your hips and chest together; the arms just hold on.",
+      "avoid": "Rounding your back at the bottom."
+    },
+    {
+      "id": "wt-lift",
+      "name": "Reverse woodchop (low-to-high lift)",
+      "pattern": "core",
+      "level": 1,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "8 each side",
+        "10 each side",
+        "12 each side",
+        "15 each side"
+      ],
+      "steps": [
+        "Squat slightly and hold the weight by both ends beside the outside of one knee.",
+        "Stand and sweep it diagonally up and across your body to above the opposite shoulder, pivoting your back foot.",
+        "Lower it back down the same line under control.",
+        "Finish all reps, then switch sides."
+      ],
+      "cue": "Finish tall, arms long, as if you're putting something on a high shelf.",
+      "avoid": "Arching your back at the top."
+    },
+    {
+      "id": "wt-hk-chop",
+      "name": "Half-kneeling woodchop",
+      "pattern": "core",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "8 each side",
+        "10 each side",
+        "12 each side"
+      ],
+      "steps": [
+        "Kneel on one knee, the front foot flat, the weight held by both ends above the shoulder on your kneeling-leg side.",
+        "Chop it diagonally down past your front hip.",
+        "Bring it back up without your hips moving.",
+        "Finish all reps, then switch knees and sides."
+      ],
+      "cue": "The kneeling position locks your hips, so your trunk does all the turning.",
+      "avoid": "Wobbling sideways; squeeze the glute of your kneeling leg."
+    },
+    {
+      "id": "wt-gravedigger",
+      "name": "Gravedigger",
+      "pattern": "core",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "8 each side",
+        "10 each side",
+        "12 each side"
+      ],
+      "steps": [
+        "Hold one dumbbell vertically by its top end, or a kettlebell by the horns, like the handle of a shovel.",
+        "Squat and 'dig' low beside the outside of one foot.",
+        "Explosively scoop it up and across your body, pivoting your feet, as if throwing dirt over the opposite shoulder.",
+        "Stop the weight at shoulder height, then dig back down on the same side. Finish all reps, then switch."
+      ],
+      "cue": "Drive from your legs and hips; it's a throw you don't let go of.",
+      "avoid": "Letting the weight fly past your shoulder; stop it hard."
+    },
+    {
+      "id": "wt-lat-lunge-dig",
+      "name": "Lateral lunge gravedigger",
+      "pattern": "lunge",
+      "level": 3,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "",
+        "6 each side",
+        "8 each side"
+      ],
+      "steps": [
+        "Hold the weight like a shovel, as in the gravedigger.",
+        "Step wide into a lateral lunge and dig the weight down beside your bent knee's foot.",
+        "Push off hard, stepping back to standing while you scoop the weight up and over the opposite shoulder.",
+        "Finish all reps, then switch sides."
+      ],
+      "cue": "The push off the floor and the scoop should be one motion.",
+      "avoid": "Bent knee caving in at the bottom of the lunge.",
+      "combo": true
+    },
+    {
+      "id": "wt-stake",
+      "name": "Stake drive",
+      "pattern": "plyoU",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "8",
+        "10",
+        "12"
+      ],
+      "steps": [
+        "Stand with feet wide, holding one dumbbell by both ends, or a kettlebell by the horns, overhead.",
+        "Drive it straight down between your feet as you drop into a squat, as if hammering in a tent stake.",
+        "Brake hard just above the floor; don't let it hit.",
+        "Stand, bring it back overhead and go again."
+      ],
+      "cue": "Fast and violent down, then stop it dead.",
+      "avoid": "Rounding your back to reach the floor; the squat gets you there."
+    },
+    {
+      "id": "wt-stab-lunge",
+      "name": "Overhead stab into reverse lunge",
+      "pattern": "lunge",
+      "level": 3,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "",
+        "6 each side",
+        "8 each side"
+      ],
+      "steps": [
+        "Hold the weight by both ends overhead.",
+        "Step back into a reverse lunge and at the same time stab the weight down and across to the outside of your front foot.",
+        "Stop it just above the floor.",
+        "Drive back up to standing with the weight overhead. Alternate legs."
+      ],
+      "cue": "The lunge and the stab land at the same moment.",
+      "avoid": "Front knee caving toward the weight.",
+      "combo": true
+    },
+    {
+      "id": "wt-spear",
+      "name": "Rotational spear thrust",
+      "pattern": "push",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "8 each side",
+        "10 each side",
+        "12 each side"
+      ],
+      "steps": [
+        "Stand side-on in a wide stance, holding the weight by both ends at your back hip.",
+        "Pivot your back foot, turn your hips and thrust the weight forward and slightly up, arms punching straight like driving a spear.",
+        "Pull it back to your hip under control.",
+        "Finish all reps, then switch sides."
+      ],
+      "cue": "Hips turn first, then the arms fire.",
+      "avoid": "Pushing with only your arms and a still body."
+    },
+    {
+      "id": "bar-staff-chop",
+      "name": "Bare-bar staff chop",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "6 each side",
+        "8 each side"
+      ],
+      "steps": [
+        "Use an empty bar with no plates. Hold it at the middle, hands close together, like a staff, one end pointing up past one shoulder.",
+        "Chop diagonally so the top end sweeps down and across toward the opposite hip, pivoting your back foot.",
+        "Stop the swing with your trunk and bring the bar back the same way.",
+        "Finish all reps, then switch sides."
+      ],
+      "cue": "The long bar wants to keep swinging; stopping it is the exercise.",
+      "avoid": "Doing this near anything breakable, or anyone."
+    },
+    {
+      "id": "bar-gravedigger",
+      "name": "Bare-bar gravedigger",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "6 each side",
+        "8 each side"
+      ],
+      "steps": [
+        "Use an empty bar. Grip it like a shovel: bottom hand at the middle, top hand a forearm's length higher.",
+        "Squat and dig the low end down beside the outside of one foot, stopping just off the floor.",
+        "Scoop up and across your body, pivoting your feet, until the bar points over the opposite shoulder.",
+        "Stop it there, then dig down on the same side again. Finish all reps, then switch hands and sides."
+      ],
+      "cue": "Slow the first few reps down until you've got the feel of the long lever.",
+      "avoid": "The bar end hitting the floor or the ceiling; check your space first."
+    },
+    {
+      "id": "bar-stake",
+      "name": "Bare-bar stake drive",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "8",
+        "10"
+      ],
+      "steps": [
+        "Use an empty bar. Hold it upright in front of you with both hands in the middle, the bottom end a few inches off the floor.",
+        "Lift it up to chest height, keeping it vertical.",
+        "Drive it straight down as you sink into a squat, as if driving a fence post, and stop it just before the floor.",
+        "Stand and lift again."
+      ],
+      "cue": "Brace your abs hard for the stop.",
+      "avoid": "Hitting the floor; if you do, put a mat under the bar."
+    },
+    {
+      "id": "bar-dig-stab-lunge",
+      "name": "Bare-bar gravedigger + stake + lunge",
+      "pattern": "core",
+      "level": 4,
+      "equipment": [
+        "barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "",
+        "5 each side"
+      ],
+      "steps": [
+        "Use an empty bar held like a shovel.",
+        "Dig low on one side and scoop the bar over the opposite shoulder.",
+        "Bring it upright and drive it down as a stake drive while stepping back into a reverse lunge.",
+        "Stand up and repeat. Finish all reps, then switch sides."
+      ],
+      "cue": "Own every stop before starting the next part.",
+      "avoid": "Rushing when you're tired; the long bar punishes sloppy reps.",
+      "combo": true
+    },
+    {
+      "id": "plank",
+      "name": "Plank",
+      "pattern": "core",
+      "level": 1,
+      "reps": [
+        "30s",
+        "45s",
+        "60s",
+        "90s"
+      ],
+      "steps": [
+        "Forearms on the floor, elbows under your shoulders, legs straight behind you on your toes.",
+        "Lift your body into one straight line from head to heels.",
+        "Squeeze your glutes and pull your belly button in.",
+        "Hold, breathing steadily."
+      ],
+      "cue": "Push the floor away with your forearms.",
+      "avoid": "Hips sagging or piking up."
+    },
+    {
+      "id": "rkc-plank",
+      "name": "Hard-style (RKC) plank",
+      "pattern": "core",
+      "level": 2,
+      "reps": [
+        "",
+        "20s",
+        "30s",
+        "40s"
+      ],
+      "steps": [
+        "Set up a forearm plank with your elbows a little in front of your shoulders and your feet together.",
+        "Squeeze your fists, glutes and thighs as hard as you can.",
+        "Pull your elbows toward your toes without moving them, as if dragging the floor.",
+        "Hold maximum tension, breathing in short sharp breaths."
+      ],
+      "cue": "Twenty seconds done properly should feel like two minutes of a normal plank.",
+      "avoid": "Relaxing any muscle; everything stays switched on."
+    },
+    {
+      "id": "long-plank",
+      "name": "Long-lever plank",
+      "pattern": "core",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Set up a forearm plank.",
+        "Walk your elbows forward until they're level with your forehead or further.",
+        "Keep your hips in line and your lower back flat.",
+        "Hold."
+      ],
+      "cue": "The further your elbows go forward, the nastier it gets.",
+      "avoid": "Lower back arching; walk the elbows back in if it does."
+    },
+    {
+      "id": "weighted-plank",
+      "name": "Weighted plank",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Set up a forearm plank.",
+        "Have a partner place a plate on your upper back, or slide it on yourself before lifting your hips.",
+        "Hold a dead-straight body line under the weight.",
+        "Lower your knees before the plate comes off."
+      ],
+      "cue": "Keep the plate high on your back, between the shoulder blades, not on your lower back.",
+      "avoid": "Sagging under the weight."
+    },
+    {
+      "id": "bear-hold",
+      "name": "Bear plank hold",
+      "pattern": "core",
+      "level": 1,
+      "reps": [
+        "20s",
+        "30s",
+        "45s",
+        "60s"
+      ],
+      "steps": [
+        "Start on hands and knees, hands under shoulders, knees under hips.",
+        "Tuck your toes and lift your knees one inch off the floor.",
+        "Keep your back flat as a table.",
+        "Hold."
+      ],
+      "cue": "Just one inch; higher makes it easier.",
+      "avoid": "Hips shooting up."
+    },
+    {
+      "id": "boat-hold",
+      "name": "Boat hold (V-sit)",
+      "pattern": "core",
+      "level": 2,
+      "reps": [
+        "",
+        "20s",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Sit with knees bent and lean back until your abs switch on.",
+        "Lift your feet so your shins are parallel to the floor, arms reaching forward.",
+        "Straighten your legs to make it harder.",
+        "Hold with a long, straight back."
+      ],
+      "cue": "Chest up, like you're proud.",
+      "avoid": "Rounding into a slump."
+    },
+    {
+      "id": "iso-trilogy",
+      "name": "Isometric trilogy",
+      "pattern": "core",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "20s each",
+        "30s each"
+      ],
+      "steps": [
+        "Plank: hold a forearm plank.",
+        "Roll straight onto your back into a hollow hold, no rest.",
+        "Roll onto your front into a superman hold, arms and legs lifted.",
+        "That's one set. Rest only when all three are done."
+      ],
+      "cue": "Move between positions quickly; the clock doesn't stop.",
+      "avoid": "Letting the lower back arch in the hollow hold.",
+      "combo": true
+    },
+    {
+      "id": "iso-gauntlet",
+      "name": "Isometric gauntlet",
+      "pattern": "core",
+      "level": 4,
+      "equipment": [
+        "bar"
+      ],
+      "reps": [
+        "",
+        "",
+        "",
+        "30s each"
+      ],
+      "steps": [
+        "Wall sit.",
+        "Straight into a chest-to-bar hold on the pull-up bar.",
+        "Drop down into a hard-style plank.",
+        "Finish with a hollow hold. No rest between any of them."
+      ],
+      "cue": "Every hold is at full tension. No coasting.",
+      "avoid": "Dropping out of a hold early; shorten the time, don't cut the quality.",
+      "combo": true
+    },
+    {
+      "id": "wall-sit",
+      "name": "Wall sit",
+      "pattern": "squat",
+      "level": 1,
+      "reps": [
+        "30s",
+        "45s",
+        "60s",
+        "90s"
+      ],
+      "steps": [
+        "Stand with your back against a wall and walk your feet out.",
+        "Slide down until your thighs are parallel to the floor, knees over ankles.",
+        "Press your whole back into the wall, arms off your legs.",
+        "Hold."
+      ],
+      "cue": "Push your heels into the floor.",
+      "avoid": "Resting your hands on your thighs."
+    },
+    {
+      "id": "wall-sit-sl",
+      "name": "Single-leg wall sit",
+      "pattern": "squat",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "20s each side",
+        "30s each side"
+      ],
+      "steps": [
+        "Set up a wall sit, thighs parallel to the floor.",
+        "Straighten one leg out in front of you and hold it up.",
+        "Hold, keeping your hips level.",
+        "Switch legs halfway through."
+      ],
+      "cue": "The standing knee stays in line with its foot.",
+      "avoid": "Standing knee caving inward."
+    },
+    {
+      "id": "wall-sit-plate",
+      "name": "Weighted wall sit",
+      "pattern": "squat",
+      "level": 2,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "45s",
+        "60s",
+        "90s"
+      ],
+      "steps": [
+        "Set up a wall sit, thighs parallel to the floor.",
+        "Rest a plate flat on your thighs, close to your hips.",
+        "Keep your back pressed flat into the wall.",
+        "Hold."
+      ],
+      "cue": "Breathe; don't hold your breath.",
+      "avoid": "Letting your hips creep up the wall."
+    },
+    {
+      "id": "wall-sit-oh",
+      "name": "Wall sit with overhead plate",
+      "pattern": "squat",
+      "level": 3,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Set up a wall sit, thighs parallel to the floor.",
+        "Press a plate straight overhead, arms locked, backs of your hands near the wall.",
+        "Keep your lower back against the wall.",
+        "Hold until the time's up or the plate drifts forward."
+      ],
+      "cue": "Legs and shoulders burn at the same time. Enjoy.",
+      "avoid": "Lower back peeling off the wall.",
+      "combo": true
+    },
+    {
+      "id": "horse-stance",
+      "name": "Horse stance",
+      "pattern": "squat",
+      "level": 2,
+      "reps": [
+        "",
+        "30s",
+        "45s",
+        "60s"
+      ],
+      "steps": [
+        "Stand with your feet twice shoulder-width, toes forward.",
+        "Sink until your thighs are close to parallel.",
+        "Keep your chest up and your knees pushed out over your toes.",
+        "Hold, hands in front of you or on your hips."
+      ],
+      "cue": "Sit down as if onto a stool.",
+      "avoid": "Knees caving inward."
+    },
+    {
+      "id": "goblet-hold",
+      "name": "Goblet squat bottom hold",
+      "pattern": "squat",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "30s",
+        "45s",
+        "60s"
+      ],
+      "steps": [
+        "Hold a dumbbell or kettlebell at your chest.",
+        "Squat all the way down.",
+        "Use your elbows to push your knees out and lift your chest.",
+        "Hold at the bottom."
+      ],
+      "cue": "Stay tall at the bottom; don't let the weight fold you forward.",
+      "avoid": "Heels lifting."
+    },
+    {
+      "id": "split-hold",
+      "name": "Split squat hold",
+      "pattern": "lunge",
+      "level": 1,
+      "reps": [
+        "20s each side",
+        "30s each side",
+        "40s each side",
+        "45s each side"
+      ],
+      "steps": [
+        "Take a long step forward into a split stance.",
+        "Lower until your back knee is an inch off the floor.",
+        "Hold there, torso upright.",
+        "Switch legs halfway through."
+      ],
+      "cue": "Front shin vertical, weight in the front heel.",
+      "avoid": "Resting the back knee on the floor."
+    },
+    {
+      "id": "bulgarian-hold",
+      "name": "Bulgarian split squat hold",
+      "pattern": "lunge",
+      "level": 3,
+      "equipment": [
+        "bench|box"
+      ],
+      "reps": [
+        "",
+        "",
+        "30s each side",
+        "45s each side"
+      ],
+      "steps": [
+        "Rest the top of your back foot on a bench or box behind you.",
+        "Lower until your front thigh is parallel to the floor.",
+        "Hold there, torso upright. Hold dumbbells to make it worse.",
+        "Switch legs halfway through."
+      ],
+      "cue": "Keep the front knee over the middle of the foot.",
+      "avoid": "Leaning forward onto the front knee."
+    },
+    {
+      "id": "superman-hold",
+      "name": "Superman hold",
+      "pattern": "hinge",
+      "level": 1,
+      "reps": [
+        "20s",
+        "30s",
+        "40s",
+        "45s"
+      ],
+      "steps": [
+        "Lie face down, arms reaching forward.",
+        "Lift your arms, chest and legs off the floor at the same time.",
+        "Look at the floor to keep your neck long.",
+        "Hold."
+      ],
+      "cue": "Squeeze your glutes to lift your legs.",
+      "avoid": "Cranking your neck up."
+    },
+    {
+      "id": "sl-bridge-hold",
+      "name": "Single-leg glute bridge hold",
+      "pattern": "hinge",
+      "level": 1,
+      "reps": [
+        "20s each side",
+        "30s each side",
+        "40s each side",
+        "45s each side"
+      ],
+      "steps": [
+        "Lie on your back, knees bent, feet flat.",
+        "Lift one foot and straighten that leg.",
+        "Drive through the other heel to lift your hips level.",
+        "Hold, then switch legs halfway through."
+      ],
+      "cue": "Hips stay level; don't let the free side drop.",
+      "avoid": "Pushing through your toes instead of your heel."
+    },
+    {
+      "id": "ctb-hold",
+      "name": "Chest-to-bar hold",
+      "pattern": "pull",
+      "also_pattern": "grip",
+      "level": 2,
+      "equipment": [
+        "bar"
+      ],
+      "reps": [
+        "",
+        "15s",
+        "20s",
+        "30s"
+      ],
+      "steps": [
+        "Grab the bar shoulder-width, palms facing you or away.",
+        "Jump or pull up until your chest touches the bar.",
+        "Hold it there, elbows tight to your sides.",
+        "Lower as slowly as you can when time's up."
+      ],
+      "cue": "Pull the bar into your chest, not your chin over it.",
+      "avoid": "Kicking and swinging to stay up."
+    },
+    {
+      "id": "half-pullup-hold",
+      "name": "Half pull-up hold",
+      "pattern": "pull",
+      "level": 3,
+      "equipment": [
+        "bar"
+      ],
+      "reps": [
+        "",
+        "",
+        "20s",
+        "30s"
+      ],
+      "steps": [
+        "Pull up until your elbows are bent at 90 degrees.",
+        "Hold there, shoulders down and chest up.",
+        "Keep your legs still and together.",
+        "Lower slowly."
+      ],
+      "cue": "The halfway point is the hardest place to stop; that's the point.",
+      "avoid": "Creeping up or sinking down during the hold."
+    },
+    {
+      "id": "row-hold",
+      "name": "Ring or TRX row hold",
+      "pattern": "pull",
+      "level": 1,
+      "equipment": [
+        "rings|trx"
+      ],
+      "reps": [
+        "15s",
+        "20s",
+        "30s",
+        "40s"
+      ],
+      "steps": [
+        "Hold the handles and lean back with a straight body.",
+        "Row your chest up to your hands.",
+        "Hold the top position, shoulder blades squeezed together.",
+        "Walk your feet forward to make it harder."
+      ],
+      "cue": "Squeeze your shoulder blades as if cracking a walnut between them.",
+      "avoid": "Hips sagging."
+    },
+    {
+      "id": "pullup-ladder",
+      "name": "Pull-up hold ladder",
+      "pattern": "pull",
+      "also_pattern": "grip",
+      "level": 3,
+      "equipment": [
+        "bar"
+      ],
+      "reps": [
+        "",
+        "",
+        "10s each",
+        "15s each"
+      ],
+      "steps": [
+        "Pull up to the top, chin over the bar, and hold.",
+        "Lower to elbows at 90 degrees and hold.",
+        "Lower to arms almost straight, shoulders still engaged, and hold.",
+        "Drop off. That's one set."
+      ],
+      "cue": "Each position is a full stop, not a slow lower.",
+      "avoid": "Relaxing the shoulders completely at the bottom.",
+      "combo": true
+    },
+    {
+      "id": "pushup-hold",
+      "name": "Bottom push-up hold",
+      "pattern": "push",
+      "level": 2,
+      "reps": [
+        "",
+        "15s",
+        "20s",
+        "30s"
+      ],
+      "steps": [
+        "Set up a push-up.",
+        "Lower until your chest is an inch off the floor.",
+        "Hold there, elbows at about 45 degrees.",
+        "Press up when time's up."
+      ],
+      "cue": "Stay rigid from head to heels.",
+      "avoid": "Letting your chest touch the floor to rest."
+    },
+    {
+      "id": "wall-hs-hold",
+      "name": "Wall handstand hold",
+      "pattern": "push",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "30s",
+        "45s"
+      ],
+      "steps": [
+        "Put your hands on the floor a hand-length from a wall.",
+        "Kick up so your heels rest against the wall.",
+        "Push the floor away, arms locked, and pull your ribs in.",
+        "Hold, then come down one leg at a time."
+      ],
+      "cue": "Push tall through your shoulders.",
+      "avoid": "A banana-shaped back; squeeze your glutes and abs."
+    },
+    {
+      "id": "planche-lean",
+      "name": "Planche lean",
+      "pattern": "push",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "20s",
+        "30s"
+      ],
+      "steps": [
+        "Set up a push-up with your fingers turned out slightly.",
+        "Lean your shoulders forward past your hands, arms straight.",
+        "Round your upper back slightly and push the floor away.",
+        "Hold the lean."
+      ],
+      "cue": "Lean further forward to make it harder.",
+      "avoid": "Bending your elbows."
+    },
+    {
+      "id": "sprint",
+      "name": "15 m sprints",
+      "pattern": "plyoL",
+      "level": 1,
+      "reps": [
+        "4 sprints",
+        "5 sprints",
+        "6 sprints",
+        "8 sprints"
+      ],
+      "steps": [
+        "Start at one end of the room in a split stance, weight on the front foot.",
+        "Sprint the full 15 m, driving your arms hard.",
+        "Slow down gradually over the last few metres; don't slam on the brakes at the wall.",
+        "Walk back; that's your rest. Go again."
+      ],
+      "cue": "Lean forward for the first few steps and push the floor back behind you.",
+      "avoid": "Sprinting at the wall: mark a finish line 2 to 3 m before it.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-fall",
+      "name": "Falling-start sprints",
+      "pattern": "plyoL",
+      "level": 1,
+      "reps": [
+        "4",
+        "5",
+        "6",
+        "6"
+      ],
+      "steps": [
+        "Stand tall at the start line, feet together, on the balls of your feet.",
+        "Lean forward from your ankles, body straight, until you're about to fall.",
+        "Catch the fall with a fast first step and sprint 10 m.",
+        "Walk back and go again."
+      ],
+      "cue": "The first three steps are short and powerful, not long reaches.",
+      "avoid": "Bending at the waist instead of leaning your whole body.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-pushup-start",
+      "name": "Push-up-start sprints",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "4",
+        "5",
+        "6"
+      ],
+      "steps": [
+        "Lie face down at the start line, hands under your shoulders.",
+        "Explode up off the floor, one foot coming through into a sprint stance.",
+        "Sprint the 15 m.",
+        "Walk back and go again."
+      ],
+      "cue": "Get off the floor as one piece: push, foot through, go.",
+      "avoid": "Standing all the way up before starting to run.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-shuttle",
+      "name": "Shuttle sprints",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "4",
+        "5",
+        "6"
+      ],
+      "steps": [
+        "Sprint 15 m to the far line.",
+        "Plant your outside foot, touch the line with your hand and turn.",
+        "Sprint back to the start. That's one.",
+        "Rest by walking a lap of the room between reps."
+      ],
+      "cue": "Sink your hips low into the turn.",
+      "avoid": "Rounding your back to reach the line; bend your knees instead.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-stick",
+      "name": "Sprint and stick",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "5",
+        "6",
+        "8"
+      ],
+      "steps": [
+        "Sprint hard for 10 m.",
+        "Stop within two or three steps into an athletic stance: feet wide, hips low, chest up.",
+        "Hold the stance for two seconds.",
+        "Walk back and go again."
+      ],
+      "cue": "Brake with your whole leg, hips back, not just your knees.",
+      "avoid": "Knees caving in as you stop.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-backpedal",
+      "name": "Backpedal to sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "4",
+        "5",
+        "6"
+      ],
+      "steps": [
+        "Start facing the start line with your back to the room.",
+        "Backpedal 5 m, staying low with small quick steps.",
+        "Open your hips, turn and sprint the rest of the room.",
+        "Walk back and go again, turning the other way each time."
+      ],
+      "cue": "Turn with your hips, not just your head.",
+      "avoid": "Leaning back while backpedalling.",
+      "sprint": true
+    },
+    {
+      "id": "sprint-shuffle",
+      "name": "Lateral shuffle to sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "4 each side",
+        "5 each side",
+        "6 each side"
+      ],
+      "steps": [
+        "Stand side-on to the room in an athletic stance.",
+        "Shuffle 3 m sideways, feet never touching.",
+        "Turn into the direction of the shuffle and sprint the rest of the room.",
+        "Walk back. Alternate the side you start facing."
+      ],
+      "cue": "Stay low through the shuffle so the turn is instant.",
+      "avoid": "Crossing your feet during the shuffle.",
+      "sprint": true
+    },
+    {
+      "id": "bounding",
+      "name": "Bounding",
+      "pattern": "plyoL",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "3 lengths",
+        "4 lengths"
+      ],
+      "steps": [
+        "Run with exaggerated, springy strides, driving your knee up and pushing off hard with each step.",
+        "Hang in the air on each stride, swinging the opposite arm forward.",
+        "Cover the 15 m in as few bounds as you can.",
+        "Walk back between lengths."
+      ],
+      "cue": "Land on the ball of the foot under your hips and bounce straight into the next bound.",
+      "avoid": "Heavy heel landings.",
+      "sprint": true
+    },
+    {
+      "id": "suicides",
+      "name": "Suicide sprints",
+      "pattern": "plyoL",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "2 rounds",
+        "3 rounds"
+      ],
+      "steps": [
+        "Mark lines at 5 m, 10 m and 15 m.",
+        "Sprint to 5 m and back, touching each line.",
+        "Straight away, sprint to 10 m and back.",
+        "Then 15 m and back. That's one round."
+      ],
+      "cue": "Turn low and quick at every line.",
+      "avoid": "Easing up on the last leg; that's where it counts.",
+      "sprint": true
+    },
+    {
+      "id": "burpee-sprint",
+      "name": "Burpees + sprint",
+      "pattern": "plyoL",
+      "level": 1,
+      "reps": [
+        "1 burpee + sprint, x4",
+        "2 burpees + sprint, x5",
+        "3 burpees + sprint, x6",
+        "5 burpees + sprint, x6"
+      ],
+      "steps": [
+        "Do the burpees at the start line.",
+        "Out of the last burpee, go straight into a sprint.",
+        "Sprint the full 15 m.",
+        "Walk back and go again."
+      ],
+      "cue": "No pause between the last jump and the first sprint step.",
+      "avoid": "Sloppy burpees to get to the sprint faster.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "burpee-shuttle",
+      "name": "Burpee shuttle",
+      "pattern": "plyoL",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "4 lengths",
+        "6 lengths"
+      ],
+      "steps": [
+        "Sprint 15 m to the far end.",
+        "Do a burpee on the line.",
+        "Sprint back and do a burpee on the start line.",
+        "Keep going for all the lengths without resting."
+      ],
+      "cue": "Chest to the floor on every burpee, even the last one.",
+      "avoid": "Jogging the later lengths; fewer lengths at full speed beats more slow ones.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "broad-sprint",
+      "name": "Broad jumps into sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "2 jumps + sprint, x4",
+        "3 jumps + sprint, x5",
+        "3 jumps + sprint, x6"
+      ],
+      "steps": [
+        "Do the broad jumps from the start line, sticking each landing.",
+        "Out of the last landing, sprint the rest of the 15 m.",
+        "Slow down before the wall.",
+        "Walk back and go again."
+      ],
+      "cue": "Land in a half squat; that's the sprint start position.",
+      "avoid": "Stiff-legged landings.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "tuck-sprint",
+      "name": "Tuck jumps + sprint",
+      "pattern": "plyoL",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "3 jumps + sprint, x5",
+        "5 jumps + sprint, x6"
+      ],
+      "steps": [
+        "Do the tuck jumps at the start line, knees to your chest.",
+        "Land the last one and sprint straight away.",
+        "Sprint the full 15 m.",
+        "Walk back and go again."
+      ],
+      "cue": "Quick, bouncy jumps; the sprint should feel like a release.",
+      "avoid": "Landing flat-footed and heavy.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "squat-hold-sprint",
+      "name": "Squat hold + sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "20s hold + sprint, x4",
+        "30s hold + sprint, x5",
+        "40s hold + sprint, x5"
+      ],
+      "steps": [
+        "Hold a deep bodyweight squat at the start line, arms out in front.",
+        "When the time's up, explode straight out of the squat into a sprint.",
+        "Sprint the full 15 m.",
+        "Walk back and go again."
+      ],
+      "cue": "Your legs will be screaming; sprint anyway. That's the point.",
+      "avoid": "Standing up first; go straight from the hold.",
+      "combo": true,
+      "slow_to_fast": true,
+      "sprint": true
+    },
+    {
+      "id": "sprint-bear",
+      "name": "Sprint out, bear crawl back",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "3 rounds",
+        "4 rounds",
+        "5 rounds"
+      ],
+      "steps": [
+        "Sprint 15 m to the far end.",
+        "Drop into a bear position, knees an inch off the floor.",
+        "Bear crawl all the way back to the start.",
+        "Stand and go straight into the next sprint."
+      ],
+      "cue": "Hips low and back flat on the crawl.",
+      "avoid": "Hips high in the air when you're tired.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "sprint-pushup-ladder",
+      "name": "Sprint push-up ladder",
+      "pattern": "push",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "up to 5 push-ups",
+        "up to 8 push-ups"
+      ],
+      "steps": [
+        "Sprint 15 m, do 1 push-up.",
+        "Sprint back, do 2 push-ups.",
+        "Keep going, adding a push-up each length.",
+        "Stop after the top number."
+      ],
+      "cue": "Full push-ups, chest to the floor, even when your lungs are on fire.",
+      "avoid": "Resting in the plank between push-ups.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "swing-sprint",
+      "name": "Kettlebell swings + sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "equipment": [
+        "kb"
+      ],
+      "reps": [
+        "",
+        "10 swings + sprint, x4",
+        "12 swings + sprint, x5",
+        "15 swings + sprint, x6"
+      ],
+      "steps": [
+        "Do the kettlebell swings at the start line.",
+        "Park the bell safely behind the line.",
+        "Sprint the full 15 m.",
+        "Walk back and go again."
+      ],
+      "cue": "Snap your hips on every swing, then carry that snap into the sprint.",
+      "avoid": "Dropping the bell; park it under control.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "goblet-sprint",
+      "name": "Slow goblet squats + sprint",
+      "pattern": "plyoL",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "3 squats + sprint, x4",
+        "4 squats + sprint, x5",
+        "5 squats + sprint, x5"
+      ],
+      "steps": [
+        "Hold a heavy dumbbell or kettlebell at your chest.",
+        "Do the squats slowly: four seconds down, a pause, then stand.",
+        "Put the weight down and sprint the full 15 m straight away.",
+        "Walk back and go again."
+      ],
+      "cue": "Slow and heavy, then as fast as possible.",
+      "avoid": "Rushing the squats to get to the sprint.",
+      "combo": true,
+      "slow_to_fast": true,
+      "sprint": true
+    },
+    {
+      "id": "slam-sprint",
+      "name": "Ball slams + sprint",
+      "pattern": "plyoU",
+      "level": 2,
+      "equipment": [
+        "slam|med"
+      ],
+      "reps": [
+        "",
+        "5 slams + sprint, x4",
+        "6 slams + sprint, x5",
+        "8 slams + sprint, x6"
+      ],
+      "steps": [
+        "Do the ball slams at the start line.",
+        "Sprint the full 15 m.",
+        "Walk back.",
+        "Go straight into the next set of slams."
+      ],
+      "cue": "Slam with your whole body, then sprint with the same aggression.",
+      "avoid": "Slamming a bouncy ball into your own face; use a slam ball or a dead-bounce medicine ball.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "farmer-sprint",
+      "name": "Farmer carry out, sprint back",
+      "pattern": "core",
+      "also_pattern": "grip",
+      "level": 2,
+      "equipment": [
+        "db|kb"
+      ],
+      "reps": [
+        "",
+        "3 rounds",
+        "4 rounds",
+        "5 rounds"
+      ],
+      "steps": [
+        "Pick up heavy dumbbells or kettlebells, one in each hand.",
+        "Walk them 15 m to the far end, standing tall.",
+        "Set them down and sprint back to the start.",
+        "Walk back to the weights and carry them home. Repeat."
+      ],
+      "cue": "Your grip is shot when you sprint, which is exactly the point.",
+      "avoid": "Dropping the weights; set them down.",
+      "combo": true,
+      "sprint": true
+    },
+    {
+      "id": "pt-chase",
+      "name": "Partner chase sprints",
+      "pattern": "plyoL",
+      "level": 1,
+      "reps": [
+        "3 each",
+        "4 each",
+        "5 each",
+        "6 each"
+      ],
+      "steps": [
+        "The runner starts 2 m ahead of the chaser, both facing the far end.",
+        "On the chaser's go, both sprint 15 m.",
+        "The chaser tries to tag the runner before the far line.",
+        "Walk back and swap roles."
+      ],
+      "cue": "Chasing makes everyone faster. Sprint through the line, then slow down.",
+      "avoid": "Tagging with a shove; a light touch on the back is plenty.",
+      "partner": true,
+      "sprint": true
+    },
+    {
+      "id": "pt-burpee-relay",
+      "name": "Burpee sprint relay",
+      "pattern": "plyoL",
+      "level": 2,
+      "reps": [
+        "",
+        "4 lengths each",
+        "5 lengths each",
+        "6 lengths each"
+      ],
+      "steps": [
+        "One partner sprints 15 m and back while the other does burpees nonstop.",
+        "When the runner gets back, swap: the runner starts burpees, the other sprints.",
+        "Count total burpees as a team.",
+        "Keep going until each partner has done all their lengths."
+      ],
+      "cue": "The faster you sprint, the fewer burpees your partner does.",
+      "avoid": "Resting instead of doing burpees while your partner runs.",
+      "combo": true,
+      "partner": true,
+      "sprint": true
+    },
+    {
+      "id": "sprint-gauntlet",
+      "name": "Sprint gauntlet",
+      "pattern": "plyoL",
+      "level": 4,
+      "reps": [
+        "",
+        "",
+        "",
+        "3 rounds"
+      ],
+      "steps": [
+        "Mark lines at 5 m, 10 m and 15 m.",
+        "Sprint to 5 m and back, then 3 burpees.",
+        "Sprint to 10 m and back, then 3 tuck jumps.",
+        "Sprint to 15 m and back, then 3 broad jumps and a 15 m sprint. That's one round."
+      ],
+      "cue": "Every sprint at full speed. When they slow down, the set is over.",
+      "avoid": "Skipping the burpees' chest-to-floor to save time.",
+      "combo": true,
+      "sprint": true
     }
   ],
   "extras": {
@@ -7498,6 +9290,131 @@
     ],
     "plate-getup": [
       "Mat"
+    ],
+    "bar-staff-chop": [
+      "Clear space all around (the bar sweeps wide)"
+    ],
+    "bar-gravedigger": [
+      "Clear space all around (the bar sweeps wide)"
+    ],
+    "bar-stake": [
+      "Mat under the bar"
+    ],
+    "bar-dig-stab-lunge": [
+      "Clear space all around (the bar sweeps wide)"
+    ],
+    "hip-circles": [
+      "Wall or chair to hold"
+    ],
+    "calf-wall": [
+      "Clear wall space"
+    ],
+    "legs-wall": [
+      "Clear wall space"
+    ],
+    "yin-dragon": [
+      "Folded towel or cushion for your knee"
+    ],
+    "yin-frog": [
+      "Mat or folded towels for your knees"
+    ],
+    "savasana": [
+      "Mat"
+    ],
+    "wall-sit": [
+      "Clear wall space"
+    ],
+    "wall-sit-sl": [
+      "Clear wall space"
+    ],
+    "wall-sit-plate": [
+      "Clear wall space"
+    ],
+    "wall-sit-oh": [
+      "Clear wall space"
+    ],
+    "wall-hs-hold": [
+      "Clear wall space",
+      "Mat or folded towel"
+    ],
+    "iso-gauntlet": [
+      "Clear wall space"
+    ],
+    "sprint": [
+      "Clear 15 m lane"
+    ],
+    "sprint-fall": [
+      "Clear 15 m lane",
+      "Cone or marker at 10 m"
+    ],
+    "sprint-pushup-start": [
+      "Clear 15 m lane"
+    ],
+    "sprint-shuttle": [
+      "Clear 15 m lane"
+    ],
+    "sprint-stick": [
+      "Clear 15 m lane",
+      "Cone or marker at 10 m"
+    ],
+    "sprint-backpedal": [
+      "Clear 15 m lane"
+    ],
+    "sprint-shuffle": [
+      "Clear 15 m lane"
+    ],
+    "bounding": [
+      "Clear 15 m lane"
+    ],
+    "suicides": [
+      "Clear 15 m lane",
+      "Cones or markers at 5, 10 and 15 m"
+    ],
+    "burpee-sprint": [
+      "Clear 15 m lane"
+    ],
+    "burpee-shuttle": [
+      "Clear 15 m lane"
+    ],
+    "broad-sprint": [
+      "Clear 15 m lane"
+    ],
+    "tuck-sprint": [
+      "Clear 15 m lane"
+    ],
+    "squat-hold-sprint": [
+      "Clear 15 m lane"
+    ],
+    "sprint-bear": [
+      "Clear 15 m lane"
+    ],
+    "sprint-pushup-ladder": [
+      "Clear 15 m lane"
+    ],
+    "swing-sprint": [
+      "Clear 15 m lane"
+    ],
+    "goblet-sprint": [
+      "Clear 15 m lane"
+    ],
+    "slam-sprint": [
+      "Clear 15 m lane"
+    ],
+    "farmer-sprint": [
+      "Clear 15 m lane"
+    ],
+    "pt-chase": [
+      "Clear 15 m lane"
+    ],
+    "pt-burpee-relay": [
+      "Clear 15 m lane"
+    ],
+    "sprint-gauntlet": [
+      "Clear 15 m lane",
+      "Cones or markers at 5, 10 and 15 m"
+    ],
+    "a-skip": [
+      "Clear 15 m lane"
     ]
   },
   "quantities": {
@@ -7528,6 +9445,10 @@
     "box-side-plank-thread": "2 soft boxes of the same height",
     "box-star-dip": "2 soft boxes of the same height",
     "plate-pinch-carry": "2 smooth-rimmed plates",
-    "plate-pinch-oh-carry": "2 smooth-rimmed plates"
+    "plate-pinch-oh-carry": "2 smooth-rimmed plates",
+    "bar-staff-chop": "empty bar, no plates",
+    "bar-gravedigger": "empty bar, no plates",
+    "bar-stake": "empty bar, no plates",
+    "bar-dig-stab-lunge": "empty bar, no plates"
   }
 }
