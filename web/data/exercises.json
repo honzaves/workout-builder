@@ -10474,6 +10474,256 @@
       ],
       "cue": "The crawls will burn your shoulders; stay low anyway.",
       "avoid": "Hips high on the crawls."
+    },
+    {
+      "id": "pt-wallsit-stack",
+      "name": "Wall sit plate stack",
+      "pattern": "squat",
+      "level": 2,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "up to 2 plates",
+        "up to 3 plates",
+        "up to 4 plates"
+      ],
+      "steps": [
+        "Hold a wall sit, thighs parallel to the floor.",
+        "Every 15 seconds, your partner lays another plate flat on your thighs, close to your hips.",
+        "When you reach the top number, hold for 15 more seconds.",
+        "Your partner takes the plates off before you stand. Switch roles."
+      ],
+      "cue": "Partner: lay the plates on gently and keep your hands near them.",
+      "avoid": "Standing up with the plates still on; they'll slide onto your feet.",
+      "partner": true
+    },
+    {
+      "id": "pt-wallsit-press",
+      "name": "Wall sit with partner pressing down",
+      "pattern": "squat",
+      "level": 1,
+      "reps": [
+        "30s each",
+        "40s each",
+        "45s each",
+        "60s each"
+      ],
+      "steps": [
+        "Hold a wall sit, thighs parallel to the floor.",
+        "Your partner puts their hands on your thighs just above the knees and presses straight down.",
+        "Start light; the sitter says 'more' or 'less'.",
+        "Switch roles."
+      ],
+      "cue": "Sitter: push your heels into the floor against the pressure.",
+      "avoid": "Partner: pressing on the kneecaps. Stay on the thighs.",
+      "partner": true
+    },
+    {
+      "id": "pt-wallsit-lap",
+      "name": "Wall sit with partner on your lap",
+      "pattern": "squat",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "20s each",
+        "30s each"
+      ],
+      "steps": [
+        "Hold a wall sit, thighs parallel to the floor.",
+        "Your partner sits carefully on your thighs near your hips, keeping their own feet on the floor.",
+        "The partner controls how much weight they give by pushing through their own feet.",
+        "Partner stands up first. Switch roles."
+      ],
+      "cue": "Partner: take weight off the moment the sitter's hips start rising.",
+      "avoid": "Partner sitting on the knees: sit close to the hips.",
+      "partner": true
+    },
+    {
+      "id": "pt-wallsit-plank",
+      "name": "Wall sit + plank swap",
+      "pattern": "squat",
+      "level": 1,
+      "reps": [
+        "3 swaps",
+        "4 swaps",
+        "5 swaps",
+        "6 swaps"
+      ],
+      "steps": [
+        "One partner holds a wall sit while the other holds a plank.",
+        "Every 30 seconds, swap positions as fast as you can.",
+        "The clock doesn't stop during the swap.",
+        "Both of you are working the whole time."
+      ],
+      "cue": "Swap quickly; the slow partner costs you both.",
+      "avoid": "Resting in a half-hearted plank.",
+      "partner": true
+    },
+    {
+      "id": "pt-plate-pushup",
+      "name": "Plate-loaded push-ups",
+      "pattern": "push",
+      "level": 3,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "6",
+        "8"
+      ],
+      "steps": [
+        "Set up a push-up.",
+        "Your partner lays a plate flat on your upper back, between your shoulder blades.",
+        "Do the push-ups with a rigid body so the plate stays put.",
+        "Your partner lifts the plate off before you drop. Switch roles."
+      ],
+      "cue": "Partner: keep one hand hovering over the plate.",
+      "avoid": "Plate on the lower back; it'll slide off and arches your spine.",
+      "partner": true
+    },
+    {
+      "id": "pt-pushup-drop",
+      "name": "Plate push-up drop set",
+      "pattern": "push",
+      "level": 4,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "",
+        "5 + 5 + max"
+      ],
+      "steps": [
+        "Your partner stacks two plates on your upper back.",
+        "Do 5 push-ups. Your partner takes one plate off.",
+        "Do 5 more. Your partner takes the last one off.",
+        "Do as many as you can with just your bodyweight. Switch roles."
+      ],
+      "cue": "No rest while the plates come off: stay in the plank.",
+      "avoid": "Letting your hips sag under the stack.",
+      "combo": true,
+      "partner": true
+    },
+    {
+      "id": "pt-resisted-pushup",
+      "name": "Partner-resisted push-ups",
+      "pattern": "push",
+      "level": 2,
+      "reps": [
+        "",
+        "6",
+        "8",
+        "10"
+      ],
+      "steps": [
+        "Set up a push-up.",
+        "Your partner puts both hands flat on your upper back, between your shoulder blades.",
+        "They press down steadily as you push up; start light.",
+        "Switch roles."
+      ],
+      "cue": "Partner: match the pressure to your partner's speed; smooth reps, not grinding ones.",
+      "avoid": "Partner pressing on the lower back.",
+      "partner": true
+    },
+    {
+      "id": "pt-plank-stack",
+      "name": "Plank plate stack",
+      "pattern": "core",
+      "level": 3,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "",
+        "up to 3 plates",
+        "up to 4 plates"
+      ],
+      "steps": [
+        "Hold a forearm plank.",
+        "Every 15 seconds, your partner lays another plate on your upper back.",
+        "Hold 15 seconds at the top number.",
+        "Your partner removes them one by one before you drop. Switch roles."
+      ],
+      "cue": "Squeeze your glutes harder with every plate.",
+      "avoid": "Dropping your knees with plates still on your back.",
+      "partner": true
+    },
+    {
+      "id": "pt-bear-plate",
+      "name": "Bear hold with plate",
+      "pattern": "core",
+      "level": 2,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "30s each",
+        "40s each",
+        "45s each"
+      ],
+      "steps": [
+        "Hold a bear position: hands under shoulders, knees an inch off the floor, back flat.",
+        "Your partner lays a plate flat on your lower back.",
+        "Hold without letting it tilt.",
+        "Partner takes it off. Switch roles."
+      ],
+      "cue": "If the plate tilts, your hips are moving.",
+      "avoid": "Hips rising to escape the load.",
+      "partner": true
+    },
+    {
+      "id": "pt-stacked-plank",
+      "name": "Stacked plank",
+      "pattern": "core",
+      "level": 3,
+      "reps": [
+        "",
+        "",
+        "20s each",
+        "30s each"
+      ],
+      "steps": [
+        "One partner holds a high plank.",
+        "The other sets up a high plank facing the same way, with their feet on the bottom partner's shoulders.",
+        "Both hold. Talk to each other.",
+        "Top partner steps down carefully. Switch places."
+      ],
+      "cue": "Bottom partner: shoulders stacked over hands, arms locked.",
+      "avoid": "Top partner's feet on the lower back; keep them on the shoulders.",
+      "partner": true
+    },
+    {
+      "id": "pt-bridge-stack",
+      "name": "Glute bridge plate stack",
+      "pattern": "hinge",
+      "level": 2,
+      "equipment": [
+        "plate|barbell"
+      ],
+      "reps": [
+        "",
+        "up to 2 plates",
+        "up to 3 plates",
+        "up to 4 plates"
+      ],
+      "steps": [
+        "Hold a glute bridge, hips high.",
+        "Every 15 seconds, your partner lays a plate across your hips.",
+        "Hold 15 seconds at the top number.",
+        "Your partner takes the plates off before you lower. Switch roles."
+      ],
+      "cue": "Drive through your heels and squeeze.",
+      "avoid": "Hips sinking as the stack grows.",
+      "partner": true
     }
   ],
   "extras": {
@@ -10838,6 +11088,18 @@
     ],
     "grip-gauntlet": [
       "2 towels"
+    ],
+    "pt-wallsit-stack": [
+      "Clear wall space"
+    ],
+    "pt-wallsit-press": [
+      "Clear wall space"
+    ],
+    "pt-wallsit-lap": [
+      "Clear wall space"
+    ],
+    "pt-wallsit-plank": [
+      "Clear wall space"
     ]
   },
   "quantities": {
@@ -10876,6 +11138,10 @@
     "grip-gauntlet": "bar and 1 smooth-rimmed plate",
     "suitcase-march": "1 heavy weight",
     "waiter-walk": "1 weight",
-    "mixed-carry": "2 weights"
+    "mixed-carry": "2 weights",
+    "pt-wallsit-stack": "2 to 4 plates",
+    "pt-plank-stack": "3 or 4 plates",
+    "pt-pushup-drop": "2 plates",
+    "pt-bridge-stack": "2 to 4 plates"
   }
 }
