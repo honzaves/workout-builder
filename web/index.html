@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Full-body workout builder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏋️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>Full-body builder</h1>
+  <p class="lede">Functional strength sessions with jumps mixed in. Tap any move for step-by-step instructions, or start the workout to follow along with timers.</p>
+
+  <div class="field"><span class="lab" id="l-time">Time</span>
+    <div class="seg" role="group" aria-labelledby="l-time" data-key="duration">
+      <button data-v="20">20 min</button><button data-v="30">30 min</button><button data-v="45">45 min</button><button data-v="60">60 min</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-level">Level</span>
+    <div class="seg" role="group" aria-labelledby="l-level" data-key="level">
+      <button data-v="1">Beginner</button><button data-v="2">Intermediate</button><button data-v="3">Advanced</button><button data-v="4">Beast</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-plyo">Plyometrics (jumps and throws)</span>
+    <div class="seg" role="group" aria-labelledby="l-plyo" data-key="plyo">
+      <button data-v="some">A sprinkle</button><button data-v="lots">In every block</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-cb">Combo moves (two or more movements chained into one rep)</span>
+    <div class="seg" role="group" aria-labelledby="l-cb" data-key="combos">
+      <button data-v="none">None</button><button data-v="some">A few</button><button data-v="lots">One per block</button><button data-v="max">As many as possible</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-oc">Obstacle course (connected jumps with boxes and parallettes)</span>
+    <div class="seg" role="group" aria-labelledby="l-oc" data-key="course">
+      <button data-v="off">Skip</button><button data-v="one">One course</button><button data-v="two">Two courses</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-pt">Who's training</span>
+    <div class="seg" role="group" aria-labelledby="l-pt" data-key="partner">
+      <button data-v="off">Just me</button><button data-v="on">With a partner</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-grip">Grip finisher</span>
+    <div class="seg" role="group" aria-labelledby="l-grip" data-key="grip">
+      <button data-v="off">Skip</button><button data-v="on">Add one</button>
+    </div></div>
+  <div class="field"><span class="lab" id="l-eq">Equipment you have (bodyweight moves always included)</span>
+    <div class="seg" role="group" aria-labelledby="l-eq" data-key="equip" data-multi="1">
+      <!-- Buttons are generated from web/data/exercises.json ("equipment") -->
+    </div>
+    <button class="all" id="allEq">Select all</button></div>
+  <button class="build" id="build">Build workout</button>
+
+  <div id="plan" hidden></div>
+</div>
+
+<div id="follow" role="dialog" aria-modal="true" aria-label="Follow-along workout">
+  <div class="ftop"><span id="fpos"></span><button class="x" id="fclose" aria-label="Exit workout">×</button></div>
+  <div class="prog"><div id="fprog"></div></div>
+  <div class="fmain" id="fmain"></div>
+  <div class="fbtns">
+    <button id="fback" aria-label="Previous step">Back</button>
+    <button class="main" id="fprimary"></button>
+    <button id="fskip" aria-label="Next step">Next</button>
+  </div>
+</div>
+
+<!-- Dev loader: fetches the exercise data, then starts the app.
+     Needs a local web server (python tools/serve.py or PyCharm's built-in preview).
+     tools/build.py replaces this block with inlined data + code. -->
+<!-- BUILD:SCRIPTS -->
+<script>
+fetch("data/exercises.json")
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => {
+    window.WORKOUT_DATA = d;
+    const s = document.createElement("script");
+    s.src = "js/app.js";
+    document.body.appendChild(s);
+  })
+  .catch(err => {
+    document.body.insertAdjacentHTML("afterbegin",
+      '<p style="padding:16px;background:#fde8e8;color:#7a1010">Couldn\'t load data/exercises.json (' + err.message +
+      '). Open this page through a local server: <code>python tools/serve.py</code></p>');
+  });
+</script>
+<!-- /BUILD:SCRIPTS -->
+</body>
+</html>
