@@ -18,7 +18,7 @@ Everything the app shows comes from the SQLite database `db/workouts.db`: exerci
 
 ### Printing
 
-**Print** (next to Start workout) prints the workout on screen, and **Print** in the Saved workouts list prints that one without opening it. The printout is its own layout: the kit list, then every move with its steps, cue and what to avoid written out, and a box per round to tick off. It always prints in the light theme. Your browser's own print command (Ctrl+P or ⌘P) prints the workout on screen the same way.
+**Print** (next to Start workout) prints the workout on screen, and **Print** in the Saved workouts list prints that one without opening it. The printout is its own layout: the kit list, then every move with its drawings (where it has them), steps, cue and what to avoid written out, and a box per round to tick off. It always prints in the light theme. Your browser's own print command (Ctrl+P or ⌘P) prints the workout on screen the same way.
 
 ### Saving and evaluating workouts
 
@@ -51,6 +51,8 @@ The server only listens on your own machine (`127.0.0.1`), so other devices on y
 | `python3 tools/validate.py` | Checks the exercises in the database for mistakes; run it after every edit |
 | `python3 tools/db_import.py` | Rebuilds the database from the historical `exercises.json` snapshot. Only for a missing database: on one that already has exercises it refuses unless you add `--force`, which would retire every exercise that isn't in the JSON |
 | `python3 tools/build.py` | Writes `dist/workout-builder.html` with everything inlined |
+| `python3 tools/figures.py review` | Writes `dist/figures-review.html`, a page with every movement drawing next to its steps (`--ids a,b` or `--pattern squat` to narrow it) |
+| `python3 tools/figures.py put file.json` | Adds or replaces poses and drawings; nothing is written if they don't validate |
 | `uv run --with pytest pytest` | Runs the tests |
 
 The helper scripts need Python 3.8 or newer with SQLite 3.44 or newer (check with `python3 -c "import sqlite3; print(sqlite3.sqlite_version)"`). Running them through uv (`uv run tools/serve.py`) uses the Python version pinned in `pyproject.toml` instead.
@@ -92,6 +94,7 @@ workout-builder/
 │   ├── serve.py              local server: static files plus the JSON API
 │   ├── api.py                database access: the catalogue for the app; save, list, open, delete and evaluate workouts
 │   ├── db_import.py          one-time seed of the database from the exercises.json snapshot
+│   ├── figures.py            movement drawings: load them into the database, build review pages
 │   ├── build.py              bundles web/ and the catalogue into dist/workout-builder.html
 │   └── validate.py           checks the exercises in the database for mistakes
 ├── tests/                    pytest: data and build (test_data.py), database and API (test_db.py)
@@ -141,6 +144,27 @@ COMMIT;
 A new row in `equipment` adds a button in the app automatically.
 
 The validator also makes sure every main slot (`plyoL`, `squat`, `hinge`, `lunge`, `push`, `pull`, `core`) keeps at least one active Beginner bodyweight move, so a workout can always be built with no equipment, and that each warm-up and cool-down role has enough of them.
+
+## Movement drawings
+
+Exercises can have simple drawings: side-view stick figures with equipment and arrows, or a view from above for obstacle courses. Each drawing illustrates one or more steps, usually 2 to 4 per exercise. They're stored in the database as small JSON descriptions (tables `figure_pose` and `exercise_figure`, see [`docs/database.md`](docs/database.md)) and drawn as SVG by `app.js`, so they cost almost nothing in size and follow the light and dark themes. They appear when you expand an exercise (and in the follow-along mode's instructions), captioned with the steps they show, and as a strip of small drawings on the printout. So far only a handful of exercises have them.
+
+To add or change drawings, write a JSON file and load it:
+
+```json
+{"poses":   {"stand": {"hip": [0, 85], "t": 0, "ln": {"to": [0, 0]}}},
+ "figures": {"goblet": [{"steps": [1, 2], "scene": {"items": [{"fig": "stand"}]}},
+                        {"steps": [3, 4], "scene": {"items": [{"fig": "stand", "ghost": true}, {"fig": "squat-bar"},
+                                                              {"arrow": [[30, 130], [30, 80]]}]}}]}}
+```
+
+```bash
+python3 tools/figures.py put my-drawings.json   # validates first; nothing is written if something's wrong
+python3 tools/figures.py review --ids goblet     # then open dist/figures-review.html
+python3 tools/figures.py get goblet             # print an exercise's drawings, to copy and edit
+```
+
+The pose keys, coordinates and item types are documented at the top of the `FIG` section in `web/js/app.js`.
 
 ## Changing how workouts are built
 

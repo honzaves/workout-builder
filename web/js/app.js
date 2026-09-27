@@ -188,6 +188,98 @@ function equipList(w){
   return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
 }
 
+/* ---------- Figures: movement drawings from pose data (DATA.poses, DATA.figures) ----------
+   Self-contained between these markers: tools/figures.py copies this section into its review pages.
+   World units are about cm, y points up, the floor is y=0 and the figure faces +x.
+   Limb angles: 0 down, 90 forward, 180 up, -90 back. Torso and head: 0 upright, positive leans forward.
+   A limb is {to:[x,y],bend} (two-bone IK, joint bends f/b/u/d), {a:[upper,lower]} (angles) or {j,to} (joints given). */
+const FIG=(()=>{
+  const L={th:43,sh:42,ft:17,ua:29,fa:27,to:50,nk:4,hr:10.5}, POSES=DATA.poses||{}, FIGS=DATA.figures||{};
+  const rad=d=>d*Math.PI/180, dir=a=>[Math.sin(rad(a)),-Math.cos(rad(a))], upv=t=>[Math.sin(rad(t)),Math.cos(rad(t))];
+  const add=(p,v,k=1)=>[p[0]+v[0]*k,p[1]+v[1]*k], sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], len=v=>Math.hypot(v[0],v[1]);
+  const unit=v=>{const d=len(v)||1;return [v[0]/d,v[1]/d]}, perp=v=>[-v[1],v[0]], isPt=o=>Array.isArray(o)&&o.length===2&&typeof o[0]==="number";
+  const mapPts=(o,f,k)=>k==="a"?o:isPt(o)?f(o):Array.isArray(o)?o.map(x=>mapPts(x,f)):o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,mapPts(v,f,k)])):o;
+  const r1=v=>Math.round(v*10)/10, P=p=>`${r1(p[0])},${r1(p[1])}`;
+  const pl=(pts,c)=>`<polyline class="${c}" points="${pts.map(P).join(" ")}"/>`, circ=(c,r,k)=>`<circle class="${k}" cx="${r1(c[0])}" cy="${r1(c[1])}" r="${r}"/>`;
+  // A figure is a pose name, {pose,x,y,...overrides} (x/y shift the whole pose) or a full pose with its own hip.
+  const pose=f=>{if(typeof f==="string") f={pose:f};const {pose:n,x=0,y=0,...o}=f,p={...(n?POSES[n]:{}),...o};return x||y?mapPts(p,q=>[q[0]+x,q[1]+y]):p};
+  function ik(R,T,l1,l2,b){
+    const u=unit(sub(T,R)),d=len(sub(T,R)); if(d>=l1+l2) return [add(R,u,l1),add(R,u,l1+l2)];
+    const dd=Math.max(d,Math.abs(l1-l2)+.01),a=(l1*l1-l2*l2+dd*dd)/(2*dd),h=Math.sqrt(Math.max(0,l1*l1-a*a)),m=add(R,u,a),c=[add(m,perp(u),h),add(m,perp(u),-h)];
+    const k={f:j=>j[0],b:j=>-j[0],u:j=>j[1],d:j=>-j[1]}[b]; return [k(c[0])>=k(c[1])?c[0]:c[1],T];
+  }
+  const limb=(R,s,l1,l2,b)=>s.j?[s.j,s.to]:s.a?(j=>[j,add(j,dir(s.a[1]),l2)])(add(R,dir(s.a[0]),l1)):ik(R,s.to,l1,l2,s.bend||b);
+  function solve(p){
+    const H=p.hip,t=p.t||0,S=add(H,upv(t),L.to),ln=p.ln||{to:[H[0],0]};
+    const leg=s=>{const [k,a]=limb(H,s,L.th,L.sh,"f");return {k,a,toe:s.toe||add(a,dir(s.ft??90),L.ft)}}, arm=s=>{const [e,h]=limb(S,s||{a:[0,0]},L.ua,L.fa,"b");return {e,h}};
+    let J={H,S,Hd:add(S,upv(t+(p.hd||0)),L.nk+L.hr),ln:leg(ln),lf:leg(p.lf||ln),an:arm(p.an),af:arm(p.af||p.an),bar:add(S,[-Math.cos(rad(t)),Math.sin(rad(t))],7)};
+    return p.flip?mapPts(J,q=>[2*H[0]-q[0],q[1]]):J;
+  }
+  // Bounds are collected while drawing, so all drawings of one exercise can share a scale.
+  function Box(){this.lo=[1e9,1e9];this.hi=[-1e9,-1e9];this.txt=[]}
+  Box.prototype.pt=function(p,r=0){this.lo=[Math.min(this.lo[0],p[0]-r),Math.min(this.lo[1],p[1]-r)];this.hi=[Math.max(this.hi[0],p[0]+r),Math.max(this.hi[1],p[1]+r)]};
+  const plate=(c,r,B)=>(B.pt(c,r),circ(c,r,"fg-eq")+circ(c,3.2,"fg-eqf"));
+  const kb=(h,v,B)=>{const c=add(h,v,15),w=perp(v);B.pt(c,10.5);return pl([add(add(h,w,6),v,4),h,add(add(h,w,-6),v,4)],"fg-eqs")+pl([h,add(h,v,6)],"fg-eqs")+circ(c,10.5,"fg-eq")};
+  const db=(h,v,B)=>{const w=perp(v),head=q=>{const s=[[-4.5,8],[4.5,8],[4.5,-8],[-4.5,-8]].map(([i,j])=>add(add(q,v,i),w,j));s.forEach(x=>B.pt(x));return `<polygon class="fg-eq" points="${s.map(P).join(" ")}"/>`};
+    return pl([add(h,v,-12),add(h,v,12)],"fg-eqs")+head(add(h,v,-12))+head(add(h,v,12))};
+  const landmine=(A,h,B)=>{const v=unit(sub(A,h));B.pt(add(A,[-9,0]));B.pt(add(A,[9,8]));return `<polygon class="fg-eq" points="${P(add(A,[-9,0]))} ${P(add(A,[9,0]))} ${P(add(A,[0,8]))}"/>`+pl([h,A],"fg-eqs")+plate(add(h,v,20),17,B)};
+  function figure(f,B,ghost){
+    const p=pose(f),J=solve(p),w=p.who||1,n=`fg-n${w}`,fr=`fg-f${w}`,ln=[J.H,J.ln.k,J.ln.a,J.ln.toe],lf=[J.H,J.lf.k,J.lf.a,J.lf.toe],an=[J.S,J.an.e,J.an.h],af=[J.S,J.af.e,J.af.h];
+    [...ln,...lf,...an,...af].forEach(q=>B.pt(q,4)); B.pt(J.Hd,L.hr);
+    let back=p.hold==="bb"?plate(J.bar,21,B):"", glow="", mid=p.hold==="lm"?landmine(p.anchor,J.an.h,B):"", front="";
+    if(!ghost) (p.hi||[]).forEach(k=>glow+=pl({torso:[J.H,J.S],ln,lf,an,af}[k],"fg-hi"));
+    if(p.hold==="kb") front=kb(J.an.h,unit(sub(J.an.h,J.an.e)),B);
+    if(p.hold==="db2") front=`<g opacity=".55">${db(J.af.h,[1,0],B)}</g>`+db(J.an.h,[1,0],B);
+    const s=back+glow+pl(af,`fg-limb ${fr}`)+pl(lf,`fg-limb ${fr}`)+pl([J.H,J.S],`fg-torso ${n}`)+pl([J.S,J.Hd],`fg-limb ${n}`)+circ(J.Hd,L.hr,`fg-head ${n}`)+mid+pl(ln,`fg-limb ${n}`)+pl(an,`fg-limb ${n}`)+front;
+    return ghost?`<g class="fg-ghost">${s}</g>`:s;
+  }
+  // A smooth curve through the points (Catmull-Rom), with a head at the end.
+  function arrow(pts,B,cls){
+    pts.forEach(q=>B.pt(q,5)); const e=[pts[0],...pts,pts[pts.length-1]]; let d=`M${P(pts[0])}`,c2=pts[0];
+    for(let i=1;i<e.length-2;i++){const c1=add(e[i],sub(e[i+1],e[i-1]),1/6);c2=add(e[i+1],sub(e[i+2],e[i]),-1/6);d+=` C${P(c1)} ${P(c2)} ${P(e[i+1])}`}
+    const end=pts[pts.length-1],v=unit(sub(end,len(sub(end,c2))>.5?c2:pts[pts.length-2])),w=perp(v);
+    return `<g class="${cls}"><path class="fg-arr" d="${d}"/><polygon class="fg-arrh" points="${[add(end,v,3),add(add(end,v,-7),w,5),add(add(end,v,-7),w,-5)].map(P).join(" ")}"/></g>`;
+  }
+  const swap=(c,B)=>{const arc=(a0,a1)=>[0,1,2,3].map(i=>add(c,[Math.cos(rad(a0+(a1-a0)*i/3)),Math.sin(rad(a0+(a1-a0)*i/3))],11));return arrow(arc(200,340),B,"")+arrow(arc(20,160),B,"")};
+  function scene(sc,B){
+    let s="";
+    for(const it of sc.items){
+      const k=it.fig?figure(it.fig,B,it.ghost):it.kb?kb(it.kb,[0,-1],B):it.plate?plate(it.plate,it.r||21,B)
+        :it.arrow?arrow(it.arrow,B,[it.dash&&"fg-dash",it.faint&&"fg-faint"].filter(Boolean).join(" "))
+        :it.swap?swap(it.swap,B):it.guide?(it.guide.forEach(q=>B.pt(q)),pl(it.guide,"fg-guide")):"";
+      if(k){s+=it.ghost&&!it.fig?`<g class="fg-ghost">${k}</g>`:k;continue}
+      if(it.box){const [x,w,h]=it.box;B.pt([x,0]);B.pt([x+w,h]);s+=`<rect class="fg-eq" x="${x}" y="0" width="${w}" height="${h}" rx="2"/>`}
+      else if(it.rack){const {x,top,hook,pin}=it.rack;B.pt([x-22,0]);B.pt([x+22,top]);
+        s+=pl([[x,0],[x,top]],"fg-eqs")+pl([[x-20,0],[x+20,0]],"fg-eqs")+pl([[x,hook-3],[x-11,hook-3],[x-11,hook+5]],"fg-eqs")+pl([[x-26,pin],[x+12,pin]],"fg-eqs")}
+      else if(it.bar){const b=it.bar;B.pt(add(b,[-10,20]));B.pt(add(b,[10,-5]));s+=pl([b,add(b,[0,18])],"fg-eqs")+pl([add(b,[-10,18]),add(b,[10,18])],"fg-eqs")+circ(b,4.5,"fg-eqf")}
+      else if(it.label){const [x,y,t]=it.label;B.pt([x,y]);B.txt.push({x,y,t})}
+      // top view: parallettes [x,y,angle], square boxes [x,y,size], and "me" (a person seen from above)
+      else if(it.pb){const [x,y,a]=it.pb,v=[Math.cos(rad(a)),Math.sin(rad(a))],e1=add([x,y],v,-17),e2=add([x,y],v,17);B.pt(e1,5);B.pt(e2,5);
+        s+=pl([e1,e2],"fg-eqs")+[e1,e2].map(e=>pl([add(e,perp(v),5),add(e,perp(v),-5)],"fg-eqs")).join("")}
+      else if(it.sq){const [x,y,w]=it.sq;B.pt([x-w/2,y-w/2]);B.pt([x+w/2,y+w/2]);s+=`<rect class="fg-eq" x="${x-w/2}" y="${y-w/2}" width="${w}" height="${w}" rx="3"/>`}
+      else if(it.me){const [x,y]=it.me;B.pt([x,y],9);s+=`<ellipse class="fg-me" cx="${x}" cy="${y}" rx="5" ry="9"/>`+circ([x+1,y],4.5,"fg-head fg-n1")}
+    }
+    return s;
+  }
+  // SVGs for an exercise's drawings: [{steps:[first,last], top, svg}]. Side and top views each share one viewBox.
+  // px: roughly how wide a side-view drawing will be shown, so labels come out about 12px (top views twice that).
+  function of(id,px=240){
+    const figs=FIGS[id]||[], out=figs.map(f=>{const B=new Box();return {steps:f.steps,top:!!f.scene.top,body:scene(f.scene,B),B}});
+    for(const top of [false,true]){
+      const g=out.filter(o=>o.top===top); if(!g.length) continue;
+      const lo=[Math.min(...g.map(o=>o.B.lo[0])),Math.min(...g.map(o=>o.B.lo[1]))], hi=[Math.max(...g.map(o=>o.B.hi[0])),Math.max(...g.map(o=>o.B.hi[1]))];
+      const fs=(hi[0]-lo[0]+24)*12/(top?px*2:px);
+      g.forEach(o=>o.B.txt.forEach(l=>{lo[0]=Math.min(lo[0],l.x-l.t.length*fs*.27);hi[0]=Math.max(hi[0],l.x+l.t.length*fs*.27);hi[1]=Math.max(hi[1],l.y+fs)}));
+      const x0=lo[0]-12,x1=hi[0]+12,y0=top?lo[1]-12:Math.min(lo[1],0)-9,y1=hi[1]+12,vb=`${r1(x0)} ${r1(-y1)} ${r1(x1-x0)} ${r1(y1-y0)}`;
+      const floor=top?"":`<rect class="fg-floorband" x="${r1(x0)}" y="-9" width="${r1(x1-x0)}" height="9"/>`+pl([[x0,0],[x1,0]],"fg-floor");
+      g.forEach(o=>o.svg=`<svg class="fg${top?" fg-top":""}" viewBox="${vb}" aria-hidden="true"><g transform="scale(1,-1)">${floor}${o.body}</g>${o.B.txt.map(l=>`<text class="fg-lab" style="font-size:${r1(fs)}px" x="${r1(l.x)}" y="${r1(-l.y)}" text-anchor="middle">${l.t}</text>`).join("")}</svg>`);
+    }
+    return out.map(({steps,top,svg})=>({steps,top,svg}));
+  }
+  return {has:id=>!!(FIGS[id]||[]).length,of};
+})();
+/* ---------- end Figures ---------- */
+
 /* ---------- Render plan ---------- */
 const plan=document.getElementById("plan");
 const COURSE_NOTE="Set up the course before you start. Rest 60 to 90 seconds between runs while you walk back. Quality beats speed: if a landing gets loud or wobbly, rest longer.";
@@ -199,8 +291,10 @@ function blockNote(b,w){
   return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${b.items.some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
 }
 const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120&&ex.p==="cool"?'<span class="tag">Yin</span>':""}${ex.ct?'<span class="tag cb">Slow + fast</span>':ex.cb?'<span class="tag cb">Combo</span>':""}${ex.sp?'<span class="tag">Sprint</span>':isJump(ex.id)?'<span class="tag">Plyo</span>':""}`;
+// The exercise's drawings, each captioned with the steps it shows.
+const figsHTML=(id,px)=>FIG.has(id)?`<div class="figs">${FIG.of(id,px).map(f=>`<figure${f.top?' class="wide"':""}>${f.svg}<figcaption>${f.steps[0]===f.steps[1]?`Step ${f.steps[0]}`:`Steps ${f.steps[0]}–${f.steps[1]}`}</figcaption></figure>`).join("")}</div>`:"";
 function howHTML(ex){
-  return `<div class="how"><ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
+  return `<div class="how">${figsHTML(ex.id,150)}<ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
   <p><b>Cue:</b> ${ex.c}</p>${ex.x?`<p><b>Avoid:</b> ${ex.x}</p>`:""}</div>`;
 }
 function row(id,meta,swappable,where){
@@ -259,7 +353,7 @@ function printHTML(w){
   const lv=w.settings.level, seq=sequence(w), total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
   const boxes=n=>`<span class="ticks" aria-hidden="true">${"<i></i>".repeat(n)}</span>`;
   const move=(id,meta,n)=>{const ex=BY[id];return `<li><div class="ph"><b>${ex.n}</b><span class="meta">${meta}</span>${tagsHTML(ex)}${n?boxes(n):""}</div>
-    <ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol><p><b>Cue:</b> ${ex.c}${ex.x?` <b>Avoid:</b> ${ex.x}`:""}</p></li>`};
+    ${figsHTML(id,110)}<ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol><p><b>Cue:</b> ${ex.c}${ex.x?` <b>Avoid:</b> ${ex.x}`:""}</p></li>`};
   // The heading, its note and the first move share an unbreakable box, so a heading never ends a page.
   const sec=(title,note,items)=>`<section><div class="keep"><h2>${title}</h2>${note?`<p class="note">${note}</p>`:""}<ul class="moves">${items[0]||""}</ul></div><ul class="moves">${items.slice(1).join("")}</ul></section>`;
   const gear=equipList(w);

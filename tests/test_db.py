@@ -9,9 +9,10 @@ import urllib.request
 
 import pytest
 
-from tools import api, db_import, serve, validate
+from tools import api, db_import, figures, serve, validate
 
 DATA = json.loads(db_import.DATA_FILE.read_text(encoding="utf-8"))  # the historical snapshot
+DATA_BY_ID = {e["id"]: e for e in DATA["exercises"]}
 
 
 def effective_reps(ex: dict) -> list[str]:
@@ -195,3 +196,47 @@ def test_http_api(tmp_path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+SAMPLE_FIGURES = {
+    "poses": {"stand": {"hip": [0, 85], "t": 0, "ln": {"to": [0, 0]}},
+              "squat": {"hip": [-22, 36], "t": 45, "ln": {"to": [0, 0]}}},
+    "figures": {"goblet": [{"steps": [1, 2], "scene": {"items": [{"fig": "stand"}]}},
+                           {"steps": [3, 4], "scene": {"items": [{"fig": "stand", "ghost": True},
+                                                                 {"fig": {"pose": "squat", "hi": ["torso"]}},
+                                                                 {"arrow": [[30, 130], [30, 80]]}]}}]},
+}
+
+
+def test_drawings_round_trip_through_the_catalog(con):
+    con.isolation_level = None
+    assert len(DATA_BY_ID["goblet"]["steps"]) == 4
+    assert figures.put(con, SAMPLE_FIGURES) == []
+    cat = api.catalog(con)
+    assert cat["poses"]["stand"] == SAMPLE_FIGURES["poses"]["stand"]
+    assert cat["figures"]["goblet"] == SAMPLE_FIGURES["figures"]["goblet"]
+    assert validate.validate(cat) == []
+
+
+@pytest.mark.parametrize("change, message", [
+    (lambda d: d["figures"]["goblet"][1].update(steps=[3, 3]), "cover steps 1-3 of 4"),
+    (lambda d: d["figures"]["goblet"][1].update(steps=[4, 4]), "expected to start at step 3"),
+    (lambda d: d["figures"]["goblet"][0]["scene"]["items"].append({"fig": "no-such-pose"}), "unknown pose 'no-such-pose'"),
+    (lambda d: d["figures"]["goblet"][0]["scene"]["items"].append({"arrow": [[0, 0]]}), "2 or more"),
+    (lambda d: d["poses"]["stand"].update(ln={"to": [0, 0], "bend": "sideways"}), "bend must be"),
+    (lambda d: d["figures"]["goblet"][0]["scene"]["items"].append({"fig": "stand", "kb": [0, 0]}), "exactly one of"),
+])
+def test_bad_drawings_are_rejected_and_nothing_is_written(con, change, message):
+    con.isolation_level = None
+    data = copy.deepcopy(SAMPLE_FIGURES)
+    change(data)
+    errors = figures.put(con, data)
+    assert any(message in e for e in errors), errors
+    assert api.catalog(con)["figures"] == {} and api.catalog(con)["poses"] == {}
+
+
+def test_review_page_uses_the_drawing_code_from_app_js(con, tmp_path):
+    con.isolation_level = None
+    figures.put(con, SAMPLE_FIGURES)
+    html = figures.review(con, out=tmp_path / "review.html").read_text(encoding="utf-8")
+    assert "const FIG=" in html and '"goblet"' in html and "data:font/woff2;base64," in html

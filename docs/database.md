@@ -41,6 +41,8 @@ erDiagram
 | `setup_item` + `exercise_setup_item` | "Clear 15 m lane", "Mat", ... | 48 distinct items linked 246 times, instead of repeated text |
 | `level` | Beginner to Beast, **with rest times and rounds** | These were constants in `app.js` (`RESTS`); they belong to the level |
 | `phase_role` + `exercise_phase_role` | Warm-up and cool-down roles: pulse, flow, mobility, stretch, yin, calm | Replaces the hardcoded id lists in `generate()` |
+| `figure_pose` | Named, reusable poses for the movement drawings ("stand", "plank-top", ...), as JSON | Most drawings only name a pose, so shared positions are written once |
+| `exercise_figure` | The 2-4 key drawings of an exercise, each covering a run of steps (`first_step`..`last_step`), with the scene as JSON | See "Movement drawings" below |
 
 ### Where performance won over normal form
 
@@ -133,9 +135,15 @@ Foreign keys can't express "this must belong to the same workout". Triggers cove
 | `v_workout_summary` | Per workout: sessions, average stars, average actual time, comment count |
 | `v_exercise_stats` | Per exercise: how often generated, how often skipped, average rating of workouts it was in |
 
+### Movement drawings
+
+Each exercise can have a few drawings, each illustrating one or more of its steps. A drawing's `scene` is JSON: a list of items such as figures (a pose name, optionally shifted with `x`/`y` or with some keys overridden), equipment (plate, kettlebell, box, rack, pull-up bar, landmine), arrows, guide lines and labels, or a top view for obstacle courses. The drawing code is the `FIG` section of `web/js/app.js`, which documents the coordinates and pose keys.
+
+The scene is stored as one JSON value, not spread over tables, because it is only ever read whole and drawn; nothing queries parts of it. `json_valid()` keeps malformed JSON out, and `tools/validate.py` checks the rest: poses exist and are well formed, items are known, and an exercise's drawings cover its steps in order, each step exactly once. Add or change drawings with `tools/figures.py put`, which validates before committing. The tables were added by `db/migrations/001_figures.sql`.
+
 ## How the app reads the catalogue
 
-`api.catalog()` flattens the catalogue tables into one JSON document: `GET /api/catalog` serves it, and `tools/build.py` inlines it into the single-file build. It keeps the readable field names of the old JSON (`pattern`, `equipment` as `"db|kb"` strings, `reps` per level, ...), plus `levels` (names, rest times, rounds), `criteria` (evaluation criteria) and `phases` (warm-up and cool-down roles to exercise ids). `tools/validate.py` checks the same document.
+`api.catalog()` flattens the catalogue tables into one JSON document: `GET /api/catalog` serves it, and `tools/build.py` inlines it into the single-file build. It keeps the readable field names of the old JSON (`pattern`, `equipment` as `"db|kb"` strings, `reps` per level, ...), plus `levels` (names, rest times, rounds), `criteria` (evaluation criteria), `phases` (warm-up and cool-down roles to exercise ids), `poses` (pose code to pose) and `figures` (exercise id to its drawings, each `{"steps": [first, last], "scene": {...}}`). `tools/validate.py` checks the same document.
 
 ## Verified against the real data
 

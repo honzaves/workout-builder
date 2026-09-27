@@ -8,6 +8,7 @@
 :root{
   --bg:#EEF1EE; --surface:#FFFFFF; --ink:#17212B; --muted:#5E6A73; --line:#D5DBD8;
   --strength:#2C6E6A; --jump:#F0B429; --jump-ink:#3A2A00; --soft:#B9C2BE; --focus:#2C6E6A;
+  --fig-far:#9AA4AA; --fig2-far:#93BDB9; --prop-fill:#E4E9E6; --arrow:#C07C00; --floor:#DCE2DE;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
@@ -16,11 +17,13 @@
   :root:not([data-theme="light"]){
     --bg:#141A20; --surface:#1C242C; --ink:#E8EDEA; --muted:#9AA6AE; --line:#2E3942;
     --strength:#5FB3AC; --jump:#F4C24D; --jump-ink:#2A1E00; --soft:#44515B; --focus:#5FB3AC;
+    --fig-far:#66727B; --fig2-far:#3A6763; --prop-fill:#2A343D; --arrow:#F4C24D; --floor:#26313A;
   }
 }
 :root[data-theme="dark"]{
   --bg:#141A20; --surface:#1C242C; --ink:#E8EDEA; --muted:#9AA6AE; --line:#2E3942;
   --strength:#5FB3AC; --jump:#F4C24D; --jump-ink:#2A1E00; --soft:#44515B; --focus:#5FB3AC;
+  --fig-far:#66727B; --fig2-far:#3A6763; --prop-fill:#2A343D; --arrow:#F4C24D; --floor:#26313A;
 }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
@@ -91,6 +94,11 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .how li{margin:0 0 4px}
 .how p{margin:0 0 6px}
 .how b{font-weight:600}
+.figs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:2px 0 12px}
+.figs figure{margin:0;background:var(--bg);border-radius:10px;padding:6px 6px 4px;display:flex;flex-direction:column;justify-content:space-between;gap:2px}
+.figs figure.wide{grid-column:span 2}
+.figs .fg{max-height:170px}
+.figs figcaption{font-size:13px;color:var(--muted);text-align:center}
 .jumpbar{border-left:4px solid var(--jump)}
 .foot{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
 
@@ -181,6 +189,27 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .dlg .actions{margin:16px 0 0}
 .evalnow{margin-top:8px;padding:14px 18px;border-radius:12px;border:0;background:var(--strength);color:#fff;font-weight:600;font-size:17px}
 
+/* Movement drawings (FIG in app.js). Figure: --ink near side, --fig-far far side, --strength partner. */
+.fg{display:block;width:100%;height:auto}
+.fg-limb,.fg-torso,.fg-eqs,.fg-arr,.fg-guide,.fg-hi{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.fg-limb{stroke-width:7}
+.fg-torso{stroke-width:12}
+.fg-n1{stroke:var(--ink)} .fg-f1{stroke:var(--fig-far)} .fg-n2{stroke:var(--strength)} .fg-f2{stroke:var(--fig2-far)}
+.fg-head.fg-n1,.fg-me{fill:var(--ink);stroke:none} .fg-head.fg-n2{fill:var(--strength);stroke:none}
+.fg-hi{stroke:var(--jump);stroke-width:17;opacity:.5}
+.fg-ghost{opacity:.2}
+.fg-eq{fill:var(--prop-fill);stroke:var(--muted);stroke-width:2.5;stroke-linejoin:round}
+.fg-eqs{stroke:var(--muted);stroke-width:4}
+.fg-eqf{fill:var(--muted)}
+.fg-arr{stroke:var(--arrow);stroke-width:3.2}
+.fg-arrh{fill:var(--arrow)}
+.fg-dash .fg-arr{stroke-dasharray:7 6}
+.fg-faint{opacity:.35}
+.fg-guide{stroke:var(--muted);stroke-width:1.6;stroke-dasharray:5 5}
+.fg-floor{stroke:var(--line);stroke-width:2}
+.fg-floorband{fill:var(--floor)}
+.fg-lab{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;fill:var(--muted)}
+
 /* Print: only the print sheet (filled by app.js), always on the light palette. */
 .printsheet{display:none}
 .rowbtns{flex-wrap:wrap}
@@ -188,6 +217,7 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
   :root,:root[data-theme="dark"],:root:not([data-theme="light"]){
     --bg:#FFFFFF; --surface:#FFFFFF; --ink:#000000; --muted:#444B50; --line:#BFC6C3;
     --strength:#2C6E6A; --jump:#F0B429; --jump-ink:#3A2A00; --soft:#B9C2BE;
+    --fig-far:#9AA4AA; --fig2-far:#93BDB9; --prop-fill:#E4E9E6; --arrow:#C07C00; --floor:#DCE2DE;
   }
   @page{margin:14mm 12mm}
   body.printing>*:not(.printsheet){display:none!important}
@@ -210,5 +240,10 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
   .printsheet .ticks{margin-left:auto;display:flex;gap:4pt;padding-right:1pt}
   .printsheet .ticks i{width:11pt;height:11pt;border:1.2px solid var(--ink);border-radius:2pt}
   .printsheet ol{margin:2pt 0 1pt;padding-left:16pt;font-size:9.5pt}
+  .printsheet .figs{display:flex;flex-wrap:wrap;gap:4pt;margin:3pt 0 2pt}
+  .printsheet .figs figure{width:26mm;padding:2pt;border:1px solid var(--line);border-radius:4pt;background:none;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .printsheet .figs figure.wide{width:54mm}
+  .printsheet .figs .fg{max-height:30mm}
+  .printsheet .figs figcaption{font-size:7.5pt}
   .printsheet .moves p{margin:0;font-size:9.5pt}
 }

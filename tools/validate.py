@@ -26,6 +26,12 @@ CORE_SLOTS = ["plyoL", "squat", "hinge", "lunge", "push", "pull", "core"]
 # moves generate() takes from each (pulse[0] and pulse[1], two mobility drills, ...).
 PHASES = {"pulse": ("warm", 2), "flow": ("warm", 1), "mob": ("warm", 2),
           "stretch": ("cool", 2), "yin": ("cool", 3), "calm": ("cool", 1)}
+# Movement drawings (figure_pose, exercise_figure): what the drawing code in app.js understands.
+POSE_KEYS = {"hip", "t", "hd", "ln", "lf", "an", "af", "hold", "hi", "anchor", "flip", "who"}
+LIMB_KEYS = {"to", "bend", "a", "j", "toe", "ft"}
+HOLDS = {"bb", "kb", "db2", "lm"}
+ITEM_KINDS = {"fig", "kb", "box", "rack", "plate", "bar", "arrow", "swap", "guide", "label", "pb", "sq", "me"}
+ITEM_FLAGS = {"ghost", "dash", "faint", "r"}
 ALLOWED_FIELDS = {"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
                   "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides", "retired"}
 
@@ -128,6 +134,87 @@ def validate(data: dict) -> list[str]:
                           f"the generator needs {needed}")
     for role in set(phases) - set(PHASES):
         errors.append(f"phase role '{role}' isn't used by the generator")
+    errors += validate_figures(data)
+    return errors
+
+
+def _is_pt(v) -> bool:
+    return isinstance(v, list) and len(v) == 2 and all(isinstance(n, (int, float)) for n in v)
+
+
+def _pose_errors(pose: dict, where: str) -> list[str]:
+    """Problems with one pose, or with a scene's overrides of a named pose."""
+    errors = [f"{where}: unknown pose key(s) {sorted(set(pose) - POSE_KEYS - {'pose', 'x', 'y'})}"] \
+        if set(pose) - POSE_KEYS - {"pose", "x", "y"} else []
+    for key in ("hip", "anchor"):
+        if key in pose and not _is_pt(pose[key]):
+            errors.append(f"{where}: '{key}' must be [x, y]")
+    for key in ("ln", "lf", "an", "af"):
+        limb = pose.get(key)
+        if limb is None:
+            continue
+        if not isinstance(limb, dict) or set(limb) - LIMB_KEYS or not ({"to", "a"} & set(limb)):
+            errors.append(f"{where}: limb '{key}' needs 'to' or 'a' and only {sorted(LIMB_KEYS)}")
+        elif any(k in limb and not _is_pt(limb[k]) for k in ("to", "a", "j", "toe")):
+            errors.append(f"{where}: limb '{key}' has a point that isn't [x, y]")
+        elif limb.get("bend", "f") not in ("f", "b", "u", "d"):
+            errors.append(f"{where}: limb '{key}' bend must be f, b, u or d")
+    if pose.get("hold") not in (None, *HOLDS):
+        errors.append(f"{where}: unknown hold '{pose['hold']}'")
+    if pose.get("hold") == "lm" and "anchor" not in pose:
+        errors.append(f"{where}: a landmine hold needs an 'anchor'")
+    if set(pose.get("hi", [])) - {"torso", "ln", "lf", "an", "af"}:
+        errors.append(f"{where}: 'hi' can only list torso, ln, lf, an, af")
+    return errors
+
+
+def validate_figures(data: dict) -> list[str]:
+    """Poses are well formed, every figure uses known poses and items, and each exercise's
+    drawings cover its steps in order, each step exactly once."""
+    errors: list[str] = []
+    poses = data.get("poses", {})
+    for code, pose in poses.items():
+        errors += _pose_errors(pose, f"pose '{code}'")
+        if "hip" not in pose:
+            errors.append(f"pose '{code}': missing 'hip'")
+    steps = {e["id"]: len(e.get("steps", [])) for e in data.get("exercises", [])}
+    for ex_id, figs in data.get("figures", {}).items():
+        if ex_id not in steps:
+            errors.append(f"figures: '{ex_id}' is not an exercise id")
+            continue
+        expected = 1
+        for n, fig in enumerate(figs, 1):
+            where = f"{ex_id} drawing {n}"
+            first, last = fig["steps"]
+            if first != expected or last > steps[ex_id]:
+                errors.append(f"{where}: covers steps {first}-{last}, expected to start at step {expected} "
+                              f"and end by step {steps[ex_id]}")
+            expected = last + 1
+            items = fig["scene"].get("items")
+            if not isinstance(items, list) or not items:
+                errors.append(f"{where}: scene needs a non-empty 'items' list")
+                continue
+            for i, item in enumerate(items, 1):
+                kinds = set(item) & ITEM_KINDS
+                if len(kinds) != 1 or set(item) - ITEM_KINDS - ITEM_FLAGS:
+                    errors.append(f"{where} item {i}: needs exactly one of {sorted(ITEM_KINDS)}, got {sorted(item)}")
+                    continue
+                fig_ref = item.get("fig")
+                if isinstance(fig_ref, str):
+                    fig_ref = {"pose": fig_ref}
+                if isinstance(fig_ref, dict):
+                    if "pose" in fig_ref and fig_ref["pose"] not in poses:
+                        errors.append(f"{where} item {i}: unknown pose '{fig_ref['pose']}'")
+                    elif "pose" not in fig_ref and "hip" not in fig_ref:
+                        errors.append(f"{where} item {i}: a figure needs a 'pose' name or its own 'hip'")
+                    errors += _pose_errors(fig_ref, f"{where} item {i}")
+                elif "fig" in item:
+                    errors.append(f"{where} item {i}: 'fig' must be a pose name or an object")
+                if "arrow" in item and (not isinstance(item["arrow"], list) or len(item["arrow"]) < 2
+                                        or not all(_is_pt(q) for q in item["arrow"])):
+                    errors.append(f"{where} item {i}: an arrow needs 2 or more [x, y] points")
+        if expected != steps[ex_id] + 1:
+            errors.append(f"{ex_id}: drawings cover steps 1-{expected - 1} of {steps[ex_id]}")
     return errors
 
 
@@ -139,7 +226,8 @@ def summary(data: dict) -> str:
     parts = ", ".join(f"{k} {v}" for k, v in sorted(by_pattern.items()))
     return (f"{len(ex)} exercises ({parts}); "
             f"{sum(bool(e.get('combo')) for e in ex)} combos, "
-            f"{sum(bool(e.get('partner')) for e in ex)} partner moves")
+            f"{sum(bool(e.get('partner')) for e in ex)} partner moves; "
+            f"{len(data.get('figures', {}))} with drawings")
 
 
 def main() -> int:

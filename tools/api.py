@@ -8,6 +8,7 @@ into a 400 response. Database constraints are the last line of defence.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 
@@ -97,8 +98,13 @@ def catalog(con: sqlite3.Connection) -> dict:
     for r in q("""SELECT p.code, e.slug FROM exercise_phase_role x JOIN phase_role p USING (role_id)
                   JOIN exercise e USING (exercise_id) ORDER BY p.role_id, e.exercise_id"""):
         phases[r["code"]].append(r["slug"])
+    poses = {r["code"]: json.loads(r["pose"]) for r in q("SELECT code, pose FROM figure_pose ORDER BY pose_id")}
+    figures = {}
+    for r in q("""SELECT e.slug, f.first_step, f.last_step, f.scene FROM exercise_figure f JOIN exercise e USING (exercise_id)
+                  ORDER BY e.exercise_id, f.figure_no"""):
+        figures.setdefault(r["slug"], []).append({"steps": [r["first_step"], r["last_step"]], "scene": json.loads(r["scene"])})
     return {"equipment": equipment, "exercises": exercises, "extras": extras_out, "quantities": quantities,
-            "levels": levels, "criteria": criteria, "phases": phases}
+            "levels": levels, "criteria": criteria, "phases": phases, "poses": poses, "figures": figures}
 
 
 def _ids(con: sqlite3.Connection, table: str, key: str, col: str) -> dict[str, int]:
