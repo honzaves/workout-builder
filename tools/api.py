@@ -1,15 +1,104 @@
-"""Workout storage for the app: save, list, open, delete and evaluate workouts.
+"""Database access for the app: the exercise catalogue, and saving, listing, opening,
+deleting and evaluating workouts. The database (db/workouts.db) is the only source of
+data the app uses.
 
-Every function takes an open connection (see db_import.connect) and plain dicts in the
+Every function takes an open connection (see connect) and plain dicts in the
 shapes the app sends and expects. Bad input raises ValueError; the server turns that
 into a 400 response. Database constraints are the last line of defence.
 """
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+SCHEMA_FILE = ROOT / "db" / "schema.sql"
+DEFAULT_DB = ROOT / "db" / "workouts.db"
 GENERATOR_VERSION = "js-1"
 KINDS = {"warmup", "course", "main", "grip", "cooldown"}
+
+
+def connect(path: Path | str = DEFAULT_DB, create: bool = False) -> sqlite3.Connection:
+    """Open the database. With create=True a missing file is made from db/schema.sql;
+    otherwise a missing file is an error, so nothing ever runs on an empty catalogue."""
+    if sqlite3.sqlite_version_info < (3, 44):
+        raise SystemExit(f"SQLite 3.44 or newer is needed; this Python has {sqlite3.sqlite_version}.")
+    fresh = str(path) == ":memory:" or not Path(path).exists()
+    if fresh and not create:
+        raise SystemExit(f"Database {path} not found. It's kept in git; to rebuild it from the old "
+                         "exercises.json snapshot, run: python3 tools/db_import.py")
+    con = sqlite3.connect(path, check_same_thread=False)
+    con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys = ON")
+    if fresh:
+        con.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
+    return con
+
+
+def catalog(con: sqlite3.Connection) -> dict:
+    """The exercise catalogue, as the app reads it (GET /api/catalog, and inlined by build.py).
+
+    Retired exercises are included (flagged "retired") so saved workouts that use them
+    still display; the generator skips them.
+    """
+    q = lambda sql, *a: con.execute(sql, a).fetchall()
+    equipment = {r["code"]: r["name"] for r in q("SELECT code, name FROM equipment ORDER BY sort_order, equipment_id")}
+    patterns = {r["exercise_id"]: {} for r in q("SELECT exercise_id FROM exercise")}
+    for r in q("""SELECT ep.exercise_id, p.code, ep.is_primary FROM exercise_pattern ep
+                  JOIN movement_pattern p USING (pattern_id)"""):
+        patterns[r["exercise_id"]]["pattern" if r["is_primary"] else "also_pattern"] = r["code"]
+    steps, reps, reqs, extras = {}, {}, {}, {}
+    for r in q("SELECT exercise_id, body FROM exercise_step ORDER BY exercise_id, step_no"):
+        steps.setdefault(r["exercise_id"], []).append(r["body"])
+    for r in q("SELECT exercise_id, level_id, prescription FROM exercise_prescription ORDER BY exercise_id, level_id"):
+        reps.setdefault(r["exercise_id"], {})[r["level_id"]] = r["prescription"]
+    for r in q("""SELECT r.exercise_id, r.position, group_concat(e.code, '|' ORDER BY o.preference) AS alts
+                  FROM exercise_requirement r JOIN requirement_option o USING (requirement_id)
+                  JOIN equipment e USING (equipment_id)
+                  GROUP BY r.requirement_id ORDER BY r.exercise_id, r.position"""):
+        reqs.setdefault(r["exercise_id"], []).append(r["alts"])
+    for r in q("""SELECT x.exercise_id, s.name FROM exercise_setup_item x JOIN setup_item s USING (setup_item_id)
+                  ORDER BY x.exercise_id, x.position"""):
+        extras.setdefault(r["exercise_id"], []).append(r["name"])
+
+    exercises, extras_out, quantities = [], {}, {}
+    for r in q("""SELECT e.*, c.cue, c.avoid, c.setup_note FROM exercise e
+                  JOIN exercise_coaching c USING (exercise_id) ORDER BY e.exercise_id"""):
+        eid = r["exercise_id"]
+        ex = {"id": r["slug"], "name": r["name"], **patterns[eid]}
+        if r["min_level_id"]:
+            ex["level"] = r["min_level_id"]
+        if eid in reqs:
+            ex["equipment"] = reqs[eid]
+        if eid in reps:
+            ex["reps"] = [reps[eid].get(lv, "") for lv in range(1, 5)]
+        ex["steps"] = steps[eid]
+        ex["cue"] = r["cue"]
+        if r["avoid"]:
+            ex["avoid"] = r["avoid"]
+        for col, key in (("is_combo", "combo"), ("is_slow_to_fast", "slow_to_fast"), ("is_partner", "partner"),
+                         ("is_sprint", "sprint"), ("switches_sides", "switch_sides")):
+            if r[col]:
+                ex[key] = True
+        if r["hold_seconds"]:
+            ex["secs"] = r["hold_seconds"]
+        if not r["is_active"]:
+            ex["retired"] = True
+        exercises.append(ex)
+        if eid in extras:
+            extras_out[r["slug"]] = extras[eid]
+        if r["setup_note"]:
+            quantities[r["slug"]] = r["setup_note"]
+    levels = [dict(r) for r in q("""SELECT level_id AS id, name, rest_between_moves_s AS ex,
+                                    rest_between_rounds_s AS round, rounds_per_block AS rounds FROM level ORDER BY level_id""")]
+    criteria = [dict(r) for r in q("""SELECT code, name, low_label AS low, high_label AS high
+                                      FROM evaluation_criterion WHERE is_active = 1 ORDER BY criterion_id""")]
+    phases = {r["code"]: [] for r in q("SELECT code FROM phase_role ORDER BY role_id")}
+    for r in q("""SELECT p.code, e.slug FROM exercise_phase_role x JOIN phase_role p USING (role_id)
+                  JOIN exercise e USING (exercise_id) ORDER BY p.role_id, e.exercise_id"""):
+        phases[r["code"]].append(r["slug"])
+    return {"equipment": equipment, "exercises": exercises, "extras": extras_out, "quantities": quantities,
+            "levels": levels, "criteria": criteria, "phases": phases}
 
 
 def _ids(con: sqlite3.Connection, table: str, key: str, col: str) -> dict[str, int]:

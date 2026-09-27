@@ -17,9 +17,7 @@
       <button data-v="20">20 min</button><button data-v="30">30 min</button><button data-v="45">45 min</button><button data-v="60">60 min</button>
     </div></div>
   <div class="field"><span class="lab" id="l-level">Level</span>
-    <div class="seg" role="group" aria-labelledby="l-level" data-key="level">
-      <button data-v="1">Beginner</button><button data-v="2">Intermediate</button><button data-v="3">Advanced</button><button data-v="4">Beast</button>
-    </div></div>
+    <div class="seg" role="group" aria-labelledby="l-level" data-key="level"></div></div>
   <div class="field"><span class="lab" id="l-plyo">Plyometrics (jumps and throws)</span>
     <div class="seg" role="group" aria-labelledby="l-plyo" data-key="plyo">
       <button data-v="some">A sprinkle</button><button data-v="lots">In every block</button>
@@ -46,7 +44,7 @@
     </div></div>
   <div class="field"><span class="lab" id="l-eq">Equipment you have (bodyweight moves always included)</span>
     <div class="seg" role="group" aria-labelledby="l-eq" data-key="equip" data-multi="1">
-      <!-- Buttons are generated from web/data/exercises.json ("equipment") -->
+      <!-- Buttons are generated from the equipment table in the database -->
     </div>
     <button class="all" id="allEq">Select all</button></div>
   <button class="build" id="build">Build workout</button>
@@ -70,14 +68,16 @@
 
 <dialog id="evalDlg" class="dlg" aria-labelledby="evalTitle"></dialog>
 
-<!-- Dev loader: fetches the exercise data, then starts the app.
-     With python tools/serve.py the data comes from the database (api/catalog);
-     any other static server falls back to data/exercises.json (no saving then).
+<!-- Print-only sheet, filled by app.js just before printing -->
+<div id="printSheet" class="printsheet"></div>
+
+<!-- Dev loader: fetches the exercise catalogue from the database (api/catalog, served by
+     python3 tools/serve.py), then starts the app.
      tools/build.py replaces this block with inlined data + code. -->
 <!-- BUILD:SCRIPTS -->
 <script>
 const getJSON = url => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-getJSON("api/catalog").catch(() => getJSON("data/exercises.json"))
+getJSON("api/catalog")
   .then(d => {
     window.WORKOUT_DATA = d;
     const s = document.createElement("script");
@@ -86,8 +86,8 @@ getJSON("api/catalog").catch(() => getJSON("data/exercises.json"))
   })
   .catch(err => {
     document.body.insertAdjacentHTML("afterbegin",
-      '<p style="padding:16px;background:#fde8e8;color:#7a1010">Couldn\'t load data/exercises.json (' + err.message +
-      '). Open this page through a local server: <code>python tools/serve.py</code></p>');
+      '<p style="padding:16px;background:#fde8e8;color:#7a1010">Couldn\'t load the exercises from the database (' + err.message +
+      '). Start the app with <code>python3 tools/serve.py</code>, or open the built file from <code>python3 tools/build.py</code>.</p>');
   });
 </script>
 <!-- /BUILD:SCRIPTS -->

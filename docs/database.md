@@ -1,8 +1,8 @@
 # Database design
 
-The schema is in [`db/schema.sql`](../db/schema.sql). It targets **SQLite 3.37+** (STRICT tables) for a single user. It has two halves:
+The schema is in [`db/schema.sql`](../db/schema.sql). It targets **SQLite 3.44+** (STRICT tables, `group_concat ... ORDER BY`) for a single user. The database, `db/workouts.db`, is the only source of data the app uses, and is tracked in git. It has two halves:
 
-1. **Catalogue**: exercises and everything that describes them. Today this is `web/data/exercises.json`.
+1. **Catalogue**: exercises and everything that describes them. It was seeded once from `db/seed/exercises.json` (`tools/db_import.py`); that file is kept only as a historical snapshot, and the catalogue is edited in the database.
 2. **Workouts**: generated workouts, each time you do one, and how it went: rating, evaluation, comments, and actual vs estimated time.
 
 > SQLite turns foreign keys **off** by default. Every connection must run `PRAGMA foreign_keys = ON;`, or none of the integrity rules below are enforced.
@@ -133,10 +133,14 @@ Foreign keys can't express "this must belong to the same workout". Triggers cove
 | `v_workout_summary` | Per workout: sessions, average stars, average actual time, comment count |
 | `v_exercise_stats` | Per exercise: how often generated, how often skipped, average rating of workouts it was in |
 
+## How the app reads the catalogue
+
+`api.catalog()` flattens the catalogue tables into one JSON document: `GET /api/catalog` serves it, and `tools/build.py` inlines it into the single-file build. It keeps the readable field names of the old JSON (`pattern`, `equipment` as `"db|kb"` strings, `reps` per level, ...), plus `levels` (names, rest times, rounds), `criteria` (evaluation criteria) and `phases` (warm-up and cool-down roles to exercise ids). `tools/validate.py` checks the same document.
+
 ## Verified against the real data
 
-The schema was checked by loading the current `exercises.json` into it, with all constraints on:
-- **Catalogue:** all 896 exercises, 3,470 steps, 775 equipment requirements and 48 setup items.
+The schema was checked when the catalogue was seeded from `exercises.json`, with all constraints on:
+- **Catalogue:** all 896 exercises, 3,470 steps, 775 equipment requirements and 48 setup items. Exporting it back gives the JSON's content field for field (short `reps` lists come back expanded to all four levels, which the app reads the same way), along with the six warm-up and cool-down lists.
 - **Candidate query:** returns exactly the same exercises as the app's `ok()` filter for every setting and slot tested.
 - **Workouts:**
   - A generated workout was stored in full, and `v_workout_kit` produced the same equipment list as the app.

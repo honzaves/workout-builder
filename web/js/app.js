@@ -1,14 +1,15 @@
-/* Full-body workout builder: app logic. Exercise data: web/data/exercises.json, served from the database by tools/serve.py. */
+/* Full-body workout builder: app logic. All data comes from the database: GET /api/catalog from tools/serve.py, or inlined by tools/build.py. */
 /* ---------- Exercise library ---------- */
 const DATA = window.WORKOUT_DATA;
 // Saving and evaluating need the database API of tools/serve.py; switched on at the end if it answers.
 const API={on:false};
-// The JSON uses readable field names; the app uses short ones internally.
+// The catalogue uses readable field names; the app uses short ones internally.
 const FIELD_MAP={id:"id",name:"n",pattern:"p",also_pattern:"p2",level:"l",equipment:"e",reps:"r",steps:"s",cue:"c",avoid:"x",combo:"cb",slow_to_fast:"ct",partner:"pt",sprint:"sp",secs:"t",switch_sides:"sw",retired:"rt"};
 const LIB = DATA.exercises.map(x=>{const o={};for(const[k,v]of Object.entries(x)){if(FIELD_MAP[k])o[FIELD_MAP[k]]=v;}return o;});
 const BY = Object.fromEntries(LIB.map(x=>[x.id,x]));
 
-/* ---------- Equipment buttons (from data) ---------- */
+/* ---------- Level and equipment buttons (from data) ---------- */
+document.querySelector('[data-key="level"]').innerHTML=DATA.levels.map(l=>`<button data-v="${l.id}">${l.name}</button>`).join("");
 document.querySelector('[data-key="equip"]').insertAdjacentHTML("beforeend",
   Object.entries(DATA.equipment).map(([k,v])=>`<button data-v="${k}">${v}</button>`).join(""));
 
@@ -44,9 +45,9 @@ document.querySelector('[data-key="equip"]').addEventListener("click",()=>setTim
 syncAll();
 
 /* ---------- Generator ---------- */
-// Rest per level: from the database when served by tools/serve.py, otherwise these defaults.
-const RESTS=DATA.levels?DATA.levels.map(l=>({ex:l.ex,round:l.round})):[{ex:30,round:90},{ex:20,round:75},{ex:15,round:60},{ex:10,round:60}];
-const LEVEL_NAMES=["Beginner","Intermediate","Advanced","Beast"];
+// Rest seconds and rounds per block, by level.
+const RESTS=DATA.levels.map(l=>({ex:l.ex,round:l.round,rounds:l.rounds}));
+const LEVEL_NAMES=DATA.levels.map(l=>l.name);
 const BLOCKS={20:2,30:3,45:4,60:5};
 const YIN={20:1,30:2,45:2,60:3}; // yin holds in the cool-down, by workout length
 const TEMPL=[
@@ -127,19 +128,17 @@ function generate(s){
       const id=pick(pat,s,used,cbSlot===-2||k===cbSlot,k===ptSlot,kit,k===spSlot)||pick("plyoL",s,used,false,false,kit);
       if(id) items.push({id,pat});
     });
-    blocks.push({name:"Block "+"ABCDE"[i],rounds:s.level===4?4:3,items});
+    blocks.push({name:"Block "+"ABCDE"[i],rounds:RESTS[s.level-1].rounds,items});
   }
   if(oc.length) blocks.unshift({name:"Obstacle course",rounds:1,course:true,items:oc});
   if(g.length) blocks.push({name:"Grip finisher",rounds:2,items:g.map(id=>({id,pat:"grip"}))});
   // Warm-up: pulse raiser, full-body flow, two mobility drills, then a second pulse raiser.
-  const pulse=shuffle(["jacks","high-knees","butt-kicks","lat-shuffle","seal-jacks","skip-in-place","a-skip","rope-easy"].filter(id=>ok(BY[id],s))),
-        flow=shuffle(["inchworm","wgs","dog-cobra","bear-squat","spiderman-reach"]),
-        mob=shuffle(["squat-reach","leg-swings","arm-circles","cat-cow","bridge-w","hip-circles","hip-9090","knee-hug","open-book","scap-pushup","ankle-rocks","lunge-rotate","calf-raises","tib-raises","band-dislocate","band-pull-apart-w"].filter(id=>ok(BY[id],s)));
+  // The id lists per role come from the database (exercise_phase_role); moves the settings rule out are dropped.
+  const role=r=>shuffle((DATA.phases[r]||[]).filter(id=>BY[id]&&ok(BY[id],s)));
+  const pulse=role("pulse"),flow=role("flow"),mob=role("mob");
   const warm=[pulse[0],flow[0],mob[0],mob[1],pulse[1]];
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
-  const stretch=shuffle(["hip-flexor","figure4","ham-fold","thread","chest-wall","quad-stretch","calf-wall","shoulder-cross","seated-twist","neck-side","cobra-stretch","wrist-stretch"]),
-        yin=shuffle(["child","yin-butterfly","yin-caterpillar","yin-dragon","yin-swan","yin-sphinx","yin-twist","yin-happy-baby","yin-frog","yin-shoelace","yin-banana"]),
-        calm=shuffle(["savasana","legs-wall","box-breath","croc-breath","reclined-butterfly"]);
+  const stretch=role("stretch"),yin=role("yin"),calm=role("calm");
   const cool=[stretch[0],stretch[1],...yin.slice(0,YIN[s.duration]||2),calm[0]];
   return {settings:{...s,equip:[...s.equip]},warm,cool,blocks};
 }
@@ -191,6 +190,15 @@ function equipList(w){
 
 /* ---------- Render plan ---------- */
 const plan=document.getElementById("plan");
+const COURSE_NOTE="Set up the course before you start. Rest 60 to 90 seconds between runs while you walk back. Quality beats speed: if a landing gets loud or wobbly, rest longer.";
+const COOL_NOTE="A couple of short stretches, then longer yin holds: settle into each pose at about 70% of your range, stay still and let gravity do the work. Finish by breathing slowly.";
+const FOOT="On plyo moves, land softly and end the set when landings get loud or sloppy. Skip or swap jumps if you have joint pain, are recovering from injury, or have a condition that makes impact risky.";
+function blockNote(b,w){
+  if(b.course) return COURSE_NOTE;
+  const R=RESTS[w.settings.level-1];
+  return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${b.items.some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
+}
+const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120&&ex.p==="cool"?'<span class="tag">Yin</span>':""}${ex.ct?'<span class="tag cb">Slow + fast</span>':ex.cb?'<span class="tag cb">Combo</span>':""}${ex.sp?'<span class="tag">Sprint</span>':isJump(ex.id)?'<span class="tag">Plyo</span>':""}`;
 function howHTML(ex){
   return `<div class="how"><ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
   <p><b>Cue:</b> ${ex.c}</p>${ex.x?`<p><b>Avoid:</b> ${ex.x}</p>`:""}</div>`;
@@ -199,13 +207,13 @@ function row(id,meta,swappable,where){
   const ex=BY[id], j=isJump(id);
   return `<details class="${j?"jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
-    ${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120&&ex.p==="cool"?'<span class="tag">Yin</span>':""}${ex.ct?'<span class="tag cb">Slow + fast</span>':ex.cb?'<span class="tag cb">Combo</span>':""}${ex.sp?'<span class="tag">Sprint</span>':j?'<span class="tag">Plyo</span>':""}
+    ${tagsHTML(ex)}
     ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button>`:""}
     <span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
 }
 function render(){
   if(!W){plan.hidden=true;return}
-  const lv=W.settings.level, R=RESTS[lv-1], seq=sequence(W);
+  const lv=W.settings.level, seq=sequence(W);
   const jumps=W.blocks.reduce((a,b)=>a+b.items.filter(i=>isJump(i.id)).length,0);
   // timeline strip
   let strip=`<span class="w" style="flex:${W.warm.reduce((a,id)=>a+holdSecs(id,WARM_SECS),0)}"></span><span class="gap"></span>`;
@@ -221,7 +229,7 @@ function render(){
   <div class="strip" aria-hidden="true">${strip}</div>
   <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
   <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
-  <div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button></div>
+  <div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button><button id="print">Print</button></div>
   ${saveHTML()}
   <section class="sec"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
   ${(()=>{const g=equipList(W);return g.length?`<ul class="gear">${g.map(([lab,uses])=>`<li><label><input type="checkbox"><span><b>${lab}</b><small>${[...uses].join(", ")}</small></span></label></li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`})()}
@@ -230,19 +238,44 @@ function render(){
   <section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
   <div class="list">${W.warm.map(id=>row(id,holdLabel(id,WARM_SECS),false)).join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
-    h+=b.course?`<section class="sec"><h2>${b.name}</h2><p class="note">Set up the course before you start. Rest 60 to 90 seconds between runs while you walk back. Quality beats speed: if a landing gets loud or wobbly, rest longer.</p>
-    <div class="list">${b.items.map((it,ii)=>row(it.id,reps(it.id,lv),true,`${bi}-${ii}`)).join("")}</div></section>`:`<section class="sec"><h2>${b.name}</h2><p class="note">${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${b.items.some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${W.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}</p>
+    h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
     <div class="list">${b.items.map((it,ii)=>row(it.id,reps(it.id,lv),true,`${bi}-${ii}`)).join("")}</div></section>`;
   });
-  h+=`<section class="sec"><h2>Cool-down</h2><p class="note">A couple of short stretches, then longer yin holds: settle into each pose at about 70% of your range, stay still and let gravity do the work. Finish by breathing slowly.</p>
+  h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
   <div class="list">${W.cool.map(id=>row(id,holdLabel(id,COOL_SECS),false)).join("")}</div></section>
-  <p class="foot">On plyo moves, land softly and end the set when landings get loud or sloppy. Skip or swap jumps if you have joint pain, are recovering from injury, or have a condition that makes impact risky.</p>`;
+  <p class="foot">${FOOT}</p>`;
   plan.innerHTML=h; plan.hidden=false;
   document.getElementById("start").onclick=startFollow;
   document.getElementById("again").onclick=build;
+  document.getElementById("print").onclick=()=>printWorkout(W);
   const sf=document.getElementById("saveForm"); if(sf) sf.onsubmit=saveCurrent;
   const eb=document.getElementById("evalBtn"); if(eb) eb.onclick=()=>openEval(W.savedId,W.name,estimateSecs(W));
 }
+/* ---------- Print ---------- */
+// A separate sheet, shown only when printing: every move with its instructions spelled out,
+// and a box per round to tick off. Prints the workout on screen, or a saved one without opening it.
+const printEl=document.getElementById("printSheet");
+function printHTML(w){
+  const lv=w.settings.level, seq=sequence(w), total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
+  const boxes=n=>`<span class="ticks" aria-hidden="true">${"<i></i>".repeat(n)}</span>`;
+  const move=(id,meta,n)=>{const ex=BY[id];return `<li><div class="ph"><b>${ex.n}</b><span class="meta">${meta}</span>${tagsHTML(ex)}${n?boxes(n):""}</div>
+    <ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol><p><b>Cue:</b> ${ex.c}${ex.x?` <b>Avoid:</b> ${ex.x}`:""}</p></li>`};
+  // The heading, its note and the first move share an unbreakable box, so a heading never ends a page.
+  const sec=(title,note,items)=>`<section><div class="keep"><h2>${title}</h2>${note?`<p class="note">${note}</p>`:""}<ul class="moves">${items[0]||""}</ul></div><ul class="moves">${items.slice(1).join("")}</ul></section>`;
+  const gear=equipList(w);
+  return `<header><h1>${w.name?esc(w.name):"Full-body workout"}</h1>
+    <p>${LEVEL_NAMES[lv-1]} · about ${total-wm-cm} min of hard work, ${total} min in total · printed ${dateLabel(new Date().toISOString())}</p></header>
+    <section><h2>What you'll need</h2>${gear.length?`<ul class="pgear">${gear.map(([lab,uses])=>`<li><b>${lab}</b>: ${[...uses].join(", ")}</li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`}${w.settings.partner==="on"?`<p class="note">Plus your partner.</p>`:""}</section>
+    ${sec("Warm-up","One after another, no rest.",w.warm.map(id=>move(id,holdLabel(id,WARM_SECS))))}
+    ${w.blocks.map(b=>sec(b.name,blockNote(b,w),b.items.map(it=>move(it.id,reps(it.id,lv),b.rounds)))).join("")}
+    ${sec("Cool-down",COOL_NOTE,w.cool.map(id=>move(id,holdLabel(id,COOL_SECS))))}
+    <p class="note">${FOOT}</p>`;
+}
+let printW=null; // set while printing something other than the workout on screen
+function printWorkout(w){printW=w; window.print()}
+addEventListener("beforeprint",()=>{const w=printW||W; printEl.innerHTML=w?printHTML(w):""; document.body.classList.toggle("printing",!!w)});
+addEventListener("afterprint",()=>{printW=null; printEl.innerHTML=""; document.body.classList.remove("printing")});
+
 plan.addEventListener("click",e=>{
   const b=e.target.closest(".swap"); if(!b) return;
   e.preventDefault(); e.stopPropagation();
@@ -416,7 +449,7 @@ async function loadSaved(){
   savedEl.hidden=false;
   savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${list.length?`${list.length} saved`:"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
     ${list.length?`<ul class="savedlist">${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.duration} min hard work<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
-      <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
+      <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
       :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
   document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);
 }
@@ -424,6 +457,7 @@ savedEl.addEventListener("click",async e=>{
   const b=e.target.closest("button"); if(!b) return;
   try{
     if(b.dataset.open) await openSaved(+b.dataset.open);
+    else if(b.dataset.print) printWorkout(fromDB(await call("GET",`workouts/${b.dataset.print}`)));
     else if(b.dataset.eval) openEval(+b.dataset.eval,b.dataset.name,+b.dataset.est);
     else if(b.dataset.del&&confirm(`Delete “${b.dataset.name}” and its evaluations?`)){
       await call("DELETE",`workouts/${b.dataset.del}`);
@@ -432,9 +466,9 @@ savedEl.addEventListener("click",async e=>{
     }
   }catch(x){alert(x.message)}
 });
+const fromDB=w=>({settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions});
 async function openSaved(id){
-  const w=await call("GET",`workouts/${id}`);
-  W={settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions};
+  W=fromDB(await call("GET",`workouts/${id}`));
   save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }

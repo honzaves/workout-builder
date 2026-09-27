@@ -1,39 +1,45 @@
-"""Sanity-check web/data/exercises.json.
+"""Sanity-check the exercise catalogue in the database (db/workouts.db).
 
-Catches the mistakes that are easy to make when editing by hand: duplicate ids,
-unknown equipment or patterns, missing reps for an exercise's own level, and
-generator slots that would come up empty.
+Checks the catalogue exactly as the app receives it (api.catalog). Catches the mistakes
+that are easy to make when editing by hand: duplicate ids,
+unknown equipment or patterns, missing reps for an exercise's own level, warm-up and
+cool-down lists that point at the wrong moves, and generator slots that would come up empty.
 
 Usage:
-    python tools/validate.py
+    python3 tools/validate.py
+    python3 tools/validate.py --db other.db
 """
 from __future__ import annotations
 
-import json
-import re
+import argparse
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA_FILE = ROOT / "web" / "data" / "exercises.json"
-APP_FILE = ROOT / "web" / "js" / "app.js"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import api  # noqa: E402
 
 PATTERNS = {"warm", "cool", "plyoL", "plyoU", "squat", "hinge", "lunge", "push", "pull", "core", "grip", "course"}
 TIMED = {"warm", "cool"}
 # Slots the generator fills in every block; each needs a bodyweight beginner option.
 CORE_SLOTS = ["plyoL", "squat", "hinge", "lunge", "push", "pull", "core"]
-# Variables in app.js generate() that hold warm-up / cool-down id lists.
-LIST_SECTIONS = {"warm": "warm", "pulse": "warm", "flow": "warm", "mob": "warm",
-                 "cool": "cool", "stretch": "cool", "yin": "cool", "calm": "cool"}
-ALLOWED_FIELDS ={"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
-                  "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides"}
+# Warm-up / cool-down roles: the pattern their moves must have, and how many gear-free
+# moves generate() takes from each (pulse[0] and pulse[1], two mobility drills, ...).
+PHASES = {"pulse": ("warm", 2), "flow": ("warm", 1), "mob": ("warm", 2),
+          "stretch": ("cool", 2), "yin": ("cool", 3), "calm": ("cool", 1)}
+ALLOWED_FIELDS = {"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
+                  "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides", "retired"}
 
 
-def load(path: Path = DATA_FILE) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+def load(db_path: Path | str = api.DEFAULT_DB) -> dict:
+    """The catalogue as the app receives it."""
+    con = api.connect(db_path)
+    try:
+        return api.catalog(con)
+    finally:
+        con.close()
 
 
-def validate(data: dict, app_js: str | None = None) -> list[str]:
+def validate(data: dict) -> list[str]:
     errors: list[str] = []
     equipment = set(data.get("equipment", {}))
     exercises = data.get("exercises", [])
@@ -84,8 +90,9 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
         elif level == 4 and len(reps) < 4:
             errors.append(f"{where}: Beast-level exercise needs a 4th reps entry")
 
+    active = [e for e in exercises if not e.get("retired")]  # only these keep the generator's slots filled
     if not any(e.get("sprint") and e.get("pattern") == "plyoL" and e.get("level") == 1 and not e.get("equipment")
-               and not e.get("partner") for e in exercises):
+               and not e.get("partner") for e in active):
         errors.append("no bodyweight beginner plyoL sprint; 'Sprints: One per block' could come up empty")
 
     seen_names: dict[str, str] = {}
@@ -102,26 +109,25 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
 
     for slot in CORE_SLOTS:
         if not any(e.get("pattern") == slot and e.get("level") == 1 and not e.get("equipment")
-                   and not e.get("partner") for e in exercises):
+                   and not e.get("partner") for e in active):
             errors.append(f"pattern '{slot}' has no bodyweight beginner exercise; workouts could come up empty")
 
-    if app_js:
-        by_id = {e.get("id"): e for e in exercises}
-        # Id lists in generate(): `name=["id",...]` or `name=shuffle(["id",...])`.
-        found = {"warm": 0, "cool": 0}
-        for var, body in re.findall(r'\b(\w+)=(?:shuffle\()?\[("[^\]]*)\]', app_js):
-            section = LIST_SECTIONS.get(var)
-            if not section:
-                continue
-            for ex_id in re.findall(r'"([a-z0-9-]+)"', body):
-                found[section] += 1
-                if ex_id not in by_id:
-                    errors.append(f"app.js {section}-up list '{var}' uses unknown id '{ex_id}'")
-                elif by_id[ex_id].get("pattern") != section:
-                    errors.append(f"app.js {section}-up list '{var}' uses '{ex_id}', which isn't a '{section}' exercise")
-        for section, n in found.items():
-            if not n:
-                errors.append(f"app.js: couldn't find the {section}-up id lists in generate()")
+    by_id = {e.get("id"): e for e in exercises}
+    phases = data.get("phases", {})
+    for role, (section, needed) in PHASES.items():
+        ids = phases.get(role, [])
+        for ex_id in ids:
+            if ex_id not in by_id:
+                errors.append(f"{section}-up list '{role}' uses unknown id '{ex_id}'")
+            elif by_id[ex_id].get("pattern") != section:
+                errors.append(f"{section}-up list '{role}' uses '{ex_id}', which isn't a '{section}' exercise")
+        usable = [i for i in ids if i in by_id and not by_id[i].get("retired") and not by_id[i].get("equipment")
+                  and not by_id[i].get("partner") and (by_id[i].get("level") or 1) == 1]
+        if len(usable) < needed:
+            errors.append(f"{section}-up list '{role}' has {len(usable)} active bodyweight beginner move(s); "
+                          f"the generator needs {needed}")
+    for role in set(phases) - set(PHASES):
+        errors.append(f"phase role '{role}' isn't used by the generator")
     return errors
 
 
@@ -137,8 +143,10 @@ def summary(data: dict) -> str:
 
 
 def main() -> int:
-    data = load()
-    errors = validate(data, APP_FILE.read_text(encoding="utf-8"))
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--db", default=str(api.DEFAULT_DB))
+    data = load(parser.parse_args().db)
+    errors = validate(data)
     if errors:
         print(f"{len(errors)} problem(s) found:")
         for e in errors:

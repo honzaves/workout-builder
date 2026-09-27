@@ -1,7 +1,7 @@
 """Serve the app locally, with a small JSON API backed by the SQLite database.
 
-On start, web/data/exercises.json is synced into the database (see db_import.py), so
-edits to the JSON show up after a restart.
+Everything the app shows comes from the database (db/workouts.db). The server refuses to
+start if the database is missing or has no exercises.
 
 Usage:
     python tools/serve.py              # serves web/ on http://localhost:8000
@@ -31,7 +31,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import api  # noqa: E402
-import db_import  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 WORKOUT = re.compile(r"^/api/workouts/(\d+)$")
@@ -65,7 +64,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             with self.lock:
                 if method == "GET" and path == "/api/catalog":
-                    return self._json(200, db_import.export_catalog(self.con))
+                    return self._json(200, api.catalog(self.con))
                 if method == "GET" and path == "/api/workouts":
                     return self._json(200, api.list_workouts(self.con))
                 if method == "POST" and path == "/api/workouts":
@@ -97,9 +96,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 def make_server(folder: Path, port: int, db_path: str) -> socketserver.TCPServer:
-    con = db_import.connect(db_path)
-    db_import.sync(con, json.loads(db_import.DATA_FILE.read_text(encoding="utf-8")),
-                   db_import.APP_FILE.read_text(encoding="utf-8"))
+    con = api.connect(db_path)
+    if not con.execute("SELECT count(*) FROM exercise WHERE is_active = 1").fetchone()[0]:
+        raise SystemExit(f"Database {db_path} has no exercises. To seed it from the old exercises.json snapshot, "
+                         "run: python3 tools/db_import.py")
     handler = type("BoundHandler", (Handler,), {"con": con})
     socketserver.TCPServer.allow_reuse_address = True
     return socketserver.ThreadingTCPServer(("127.0.0.1", port), functools.partial(handler, directory=str(folder)))
@@ -110,7 +110,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--dist", action="store_true", help="serve dist/ instead of web/")
     parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--db", default=str(db_import.DEFAULT_DB), help="SQLite database file")
+    parser.add_argument("--db", default=str(api.DEFAULT_DB), help="SQLite database file")
     args = parser.parse_args()
 
     folder = ROOT / ("dist" if args.dist else "web")

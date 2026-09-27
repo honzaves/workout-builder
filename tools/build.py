@@ -1,5 +1,9 @@
 """Bundle web/ into one self-contained HTML file: dist/workout-builder.html.
 
+The exercise catalogue is read from the database (db/workouts.db) and inlined, so the
+file is a snapshot of the catalogue at build time. Saving and evaluating workouts need
+the server, so they're switched off in the built file.
+
 The result works offline, can be opened straight from disk, emailed,
 or re-published as a Claude artifact.
 
@@ -11,7 +15,11 @@ from __future__ import annotations
 import base64
 import json
 import re
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import api  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
@@ -32,11 +40,15 @@ def _embed_fonts(css: str) -> str:
     return re.sub(r'url\("\.\./fonts/([^"]+\.woff2)"\)', data_uri, css)
 
 
-def build() -> Path:
+def build(db_path: Path | str = api.DEFAULT_DB) -> Path:
     html = (WEB / "index.html").read_text(encoding="utf-8")
     css = _embed_fonts((WEB / "css" / "styles.css").read_text(encoding="utf-8"))
     js = (WEB / "js" / "app.js").read_text(encoding="utf-8")
-    data = json.loads((WEB / "data" / "exercises.json").read_text(encoding="utf-8"))
+    con = api.connect(db_path)
+    try:
+        data = api.catalog(con)
+    finally:
+        con.close()
 
     html, n = re.subn(
         r'<link rel="stylesheet" href="css/styles.css">',

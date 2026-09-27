@@ -180,3 +180,35 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .ends small{font-size:13px;color:var(--muted)}
 .dlg .actions{margin:16px 0 0}
 .evalnow{margin-top:8px;padding:14px 18px;border-radius:12px;border:0;background:var(--strength);color:#fff;font-weight:600;font-size:17px}
+
+/* Print: only the print sheet (filled by app.js), always on the light palette. */
+.printsheet{display:none}
+.rowbtns{flex-wrap:wrap}
+@media print{
+  :root,:root[data-theme="dark"],:root:not([data-theme="light"]){
+    --bg:#FFFFFF; --surface:#FFFFFF; --ink:#000000; --muted:#444B50; --line:#BFC6C3;
+    --strength:#2C6E6A; --jump:#F0B429; --jump-ink:#3A2A00; --soft:#B9C2BE;
+  }
+  @page{margin:14mm 12mm}
+  body.printing>*:not(.printsheet){display:none!important}
+  body.printing{background:var(--bg);font-size:10.5pt;line-height:1.35}
+  body.printing .printsheet{display:block}
+  .printsheet header{border-bottom:2px solid var(--ink);margin-bottom:10pt;padding-bottom:6pt}
+  .printsheet h1{font-size:26pt;margin:0 0 2pt;line-height:1}
+  .printsheet header p{margin:0;color:var(--muted)}
+  .printsheet section{margin:0 0 10pt}
+  .printsheet h2{font-size:16pt;margin:0;line-height:1.2;break-after:avoid}
+  .printsheet .note{color:var(--muted);margin:1pt 0 5pt;font-size:9.5pt}
+  .printsheet .pgear{margin:0;padding-left:12pt;columns:2;column-gap:18pt;font-size:9.5pt}
+  .printsheet .pgear li{break-inside:avoid}
+  .printsheet .moves{list-style:none;margin:0;padding:0}
+  .printsheet .keep{break-inside:avoid}
+  .printsheet .moves>li{border-top:1px solid var(--line);padding:4pt 0;break-inside:avoid}
+  .printsheet .ph{display:flex;flex-wrap:wrap;align-items:center;gap:3pt 8pt}
+  .printsheet .meta{color:var(--muted)}
+  .printsheet .tag{font-size:8pt;padding:0 5pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .printsheet .ticks{margin-left:auto;display:flex;gap:4pt;padding-right:1pt}
+  .printsheet .ticks i{width:11pt;height:11pt;border:1.2px solid var(--ink);border-radius:2pt}
+  .printsheet ol{margin:2pt 0 1pt;padding-left:16pt;font-size:9.5pt}
+  .printsheet .moves p{margin:0;font-size:9.5pt}
+}

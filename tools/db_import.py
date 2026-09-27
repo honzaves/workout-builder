@@ -1,12 +1,18 @@
-"""Sync web/data/exercises.json into the SQLite database (db/workouts.db).
+"""Seed the SQLite database (db/workouts.db) from the historical db/seed/exercises.json.
 
-Safe to run any number of times: exercises are matched by their id (slug), so their
-database ids stay the same and saved workouts keep pointing at the right exercise.
-Exercises that disappear from the JSON are retired (is_active = 0), never deleted.
+The database is the only source the app uses; exercises.json is kept as a snapshot of
+the catalogue before the switch and is no longer edited. Run this only to rebuild the
+database from that snapshot (a fresh checkout without db/workouts.db, or tests).
+
+On a database that already has exercises it refuses unless --force is given, because
+the sync makes the catalogue match the JSON exactly: exercises that aren't in the JSON
+(for example ones added to the database later) are retired (is_active = 0). Exercises
+are matched by id (slug), so saved workouts keep pointing at the right exercise.
 
 Usage:
-    python tools/db_import.py                 # sync into db/workouts.db
-    python tools/db_import.py --db other.db
+    python3 tools/db_import.py                 # seed db/workouts.db (created if missing)
+    python3 tools/db_import.py --db other.db
+    python3 tools/db_import.py --force         # re-sync a database that already has exercises
 """
 from __future__ import annotations
 
@@ -14,13 +20,14 @@ import argparse
 import json
 import re
 import sqlite3
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from api import DEFAULT_DB, connect  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-DATA_FILE = ROOT / "web" / "data" / "exercises.json"
-APP_FILE = ROOT / "web" / "js" / "app.js"
-SCHEMA_FILE = ROOT / "db" / "schema.sql"
-DEFAULT_DB = ROOT / "db" / "workouts.db"
+DATA_FILE = ROOT / "db" / "seed" / "exercises.json"
 
 PATTERNS = {  # code: (name, is_timed, is_explosive)
     "warm": ("Warm-up", 1, 0), "cool": ("Cool-down", 1, 0),
@@ -37,27 +44,23 @@ CATEGORIES = {
 HOLD = re.compile(r"^(\d+)s( each side)?$")
 
 
-def connect(path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
-    """Open the database, creating it from db/schema.sql if it doesn't exist yet."""
-    if sqlite3.sqlite_version_info < (3, 44):
-        raise SystemExit(f"SQLite 3.44 or newer is needed; this Python has {sqlite3.sqlite_version}.")
-    path = Path(path) if str(path) != ":memory:" else path
-    fresh = path == ":memory:" or not Path(path).exists()
-    con = sqlite3.connect(path, check_same_thread=False)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys = ON")
-    if fresh:
-        con.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
-    return con
+# The warm-up and cool-down lists as they were in app.js generate() when the JSON was
+# retired. In the database they are exercise_phase_role rows.
+PHASES = {
+    "pulse": ["jacks", "high-knees", "butt-kicks", "lat-shuffle", "seal-jacks", "skip-in-place", "a-skip", "rope-easy"],
+    "flow": ["inchworm", "wgs", "dog-cobra", "bear-squat", "spiderman-reach"],
+    "mob": ["squat-reach", "leg-swings", "arm-circles", "cat-cow", "bridge-w", "hip-circles", "hip-9090", "knee-hug",
+            "open-book", "scap-pushup", "ankle-rocks", "lunge-rotate", "calf-raises", "tib-raises", "band-dislocate",
+            "band-pull-apart-w"],
+    "stretch": ["hip-flexor", "figure4", "ham-fold", "thread", "chest-wall", "quad-stretch", "calf-wall",
+                "shoulder-cross", "seated-twist", "neck-side", "cobra-stretch", "wrist-stretch"],
+    "yin": ["child", "yin-butterfly", "yin-caterpillar", "yin-dragon", "yin-swan", "yin-sphinx", "yin-twist",
+            "yin-happy-baby", "yin-frog", "yin-shoelace", "yin-banana"],
+    "calm": ["savasana", "legs-wall", "box-breath", "croc-breath", "reclined-butterfly"],
+}
 
 
-def phase_roles(app_js: str) -> dict[str, list[str]]:
-    """The warm-up and cool-down id lists in generate(), e.g. {'pulse': ['jacks', ...]}."""
-    return {var: re.findall(r'"([a-z0-9-]+)"', body)
-            for var, body in re.findall(r"\b(pulse|flow|mob|stretch|yin|calm)=shuffle\(\[(.*?)\]", app_js)}
-
-
-def sync(con: sqlite3.Connection, data: dict, app_js: str) -> dict[str, int]:
+def sync(con: sqlite3.Connection, data: dict, phases: dict[str, list[str]] = PHASES) -> dict[str, int]:
     """Bring the catalogue tables in line with the JSON. Returns counts of what changed."""
     stats = {"added": 0, "updated": 0, "retired": 0}
     with con:
@@ -128,80 +131,22 @@ def sync(con: sqlite3.Connection, data: dict, app_js: str) -> dict[str, int]:
 
         role = {r["code"]: r["role_id"] for r in con.execute("SELECT code, role_id FROM phase_role")}
         ex_id = {r["slug"]: r["exercise_id"] for r in con.execute("SELECT slug, exercise_id FROM exercise")}
-        for code, ids in phase_roles(app_js).items():
+        for code, ids in phases.items():
             con.executemany("INSERT OR IGNORE INTO exercise_phase_role VALUES (?,?)",
                             [(ex_id[i], role[code]) for i in ids if i in ex_id])
     return stats
 
 
-def export_catalog(con: sqlite3.Connection) -> dict:
-    """The catalogue in the same shape as exercises.json, which is what the app reads.
-
-    Retired exercises are included (flagged "retired") so saved workouts that use them
-    still display; the generator skips them.
-    """
-    q = lambda sql, *a: con.execute(sql, a).fetchall()
-    equipment = {r["code"]: r["name"] for r in q("SELECT code, name FROM equipment ORDER BY sort_order, equipment_id")}
-    patterns = {r["exercise_id"]: {} for r in q("SELECT exercise_id FROM exercise")}
-    for r in q("""SELECT ep.exercise_id, p.code, ep.is_primary FROM exercise_pattern ep
-                  JOIN movement_pattern p USING (pattern_id)"""):
-        patterns[r["exercise_id"]]["pattern" if r["is_primary"] else "also_pattern"] = r["code"]
-    steps, reps, reqs, extras = {}, {}, {}, {}
-    for r in q("SELECT exercise_id, body FROM exercise_step ORDER BY exercise_id, step_no"):
-        steps.setdefault(r["exercise_id"], []).append(r["body"])
-    for r in q("SELECT exercise_id, level_id, prescription FROM exercise_prescription ORDER BY exercise_id, level_id"):
-        reps.setdefault(r["exercise_id"], {})[r["level_id"]] = r["prescription"]
-    for r in q("""SELECT r.exercise_id, r.position, group_concat(e.code, '|' ORDER BY o.preference) AS alts
-                  FROM exercise_requirement r JOIN requirement_option o USING (requirement_id)
-                  JOIN equipment e USING (equipment_id)
-                  GROUP BY r.requirement_id ORDER BY r.exercise_id, r.position"""):
-        reqs.setdefault(r["exercise_id"], []).append(r["alts"])
-    for r in q("""SELECT x.exercise_id, s.name FROM exercise_setup_item x JOIN setup_item s USING (setup_item_id)
-                  ORDER BY x.exercise_id, x.position"""):
-        extras.setdefault(r["exercise_id"], []).append(r["name"])
-
-    exercises, extras_out, quantities = [], {}, {}
-    for r in q("""SELECT e.*, c.cue, c.avoid, c.setup_note FROM exercise e
-                  JOIN exercise_coaching c USING (exercise_id) ORDER BY e.exercise_id"""):
-        eid = r["exercise_id"]
-        ex = {"id": r["slug"], "name": r["name"], **patterns[eid]}
-        if r["min_level_id"]:
-            ex["level"] = r["min_level_id"]
-        if eid in reqs:
-            ex["equipment"] = reqs[eid]
-        if eid in reps:
-            ex["reps"] = [reps[eid].get(lv, "") for lv in range(1, 5)]
-        ex["steps"] = steps[eid]
-        ex["cue"] = r["cue"]
-        if r["avoid"]:
-            ex["avoid"] = r["avoid"]
-        for col, key in (("is_combo", "combo"), ("is_slow_to_fast", "slow_to_fast"), ("is_partner", "partner"),
-                         ("is_sprint", "sprint"), ("switches_sides", "switch_sides")):
-            if r[col]:
-                ex[key] = True
-        if r["hold_seconds"]:
-            ex["secs"] = r["hold_seconds"]
-        if not r["is_active"]:
-            ex["retired"] = True
-        exercises.append(ex)
-        if eid in extras:
-            extras_out[r["slug"]] = extras[eid]
-        if r["setup_note"]:
-            quantities[r["slug"]] = r["setup_note"]
-    levels = [dict(r) for r in q("""SELECT level_id AS id, name, rest_between_moves_s AS ex,
-                                    rest_between_rounds_s AS round, rounds_per_block AS rounds FROM level ORDER BY level_id""")]
-    criteria = [dict(r) for r in q("""SELECT code, name, low_label AS low, high_label AS high
-                                      FROM evaluation_criterion WHERE is_active = 1 ORDER BY criterion_id""")]
-    return {"equipment": equipment, "exercises": exercises, "extras": extras_out, "quantities": quantities,
-            "levels": levels, "criteria": criteria}
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--db", default=str(DEFAULT_DB))
+    parser.add_argument("--force", action="store_true", help="sync even if the database already has exercises")
     args = parser.parse_args()
-    con = connect(args.db)
-    stats = sync(con, json.loads(DATA_FILE.read_text(encoding="utf-8")), APP_FILE.read_text(encoding="utf-8"))
+    con = connect(args.db, create=True)
+    if con.execute("SELECT count(*) FROM exercise").fetchone()[0] and not args.force:
+        raise SystemExit(f"{args.db} already has exercises; the database, not exercises.json, is the source now.\n"
+                         "Re-syncing would retire every exercise that isn't in the JSON. Use --force if you mean it.")
+    stats = sync(con, json.loads(DATA_FILE.read_text(encoding="utf-8")))
     total = con.execute("SELECT count(*) FROM exercise WHERE is_active = 1").fetchone()[0]
     print(f"{args.db}: {total} active exercises "
           f"({stats['added']} added, {stats['updated']} updated, {stats['retired']} retired)")
