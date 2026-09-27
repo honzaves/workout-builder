@@ -1,8 +1,10 @@
-/* Full-body workout builder: app logic. Exercise data lives in web/data/exercises.json. */
+/* Full-body workout builder: app logic. Exercise data: web/data/exercises.json, served from the database by tools/serve.py. */
 /* ---------- Exercise library ---------- */
 const DATA = window.WORKOUT_DATA;
+// Saving and evaluating need the database API of tools/serve.py; switched on at the end if it answers.
+const API={on:false};
 // The JSON uses readable field names; the app uses short ones internally.
-const FIELD_MAP={id:"id",name:"n",pattern:"p",also_pattern:"p2",level:"l",equipment:"e",reps:"r",steps:"s",cue:"c",avoid:"x",combo:"cb",slow_to_fast:"ct",partner:"pt",sprint:"sp",secs:"t",switch_sides:"sw"};
+const FIELD_MAP={id:"id",name:"n",pattern:"p",also_pattern:"p2",level:"l",equipment:"e",reps:"r",steps:"s",cue:"c",avoid:"x",combo:"cb",slow_to_fast:"ct",partner:"pt",sprint:"sp",secs:"t",switch_sides:"sw",retired:"rt"};
 const LIB = DATA.exercises.map(x=>{const o={};for(const[k,v]of Object.entries(x)){if(FIELD_MAP[k])o[FIELD_MAP[k]]=v;}return o;});
 const BY = Object.fromEntries(LIB.map(x=>[x.id,x]));
 
@@ -42,7 +44,9 @@ document.querySelector('[data-key="equip"]').addEventListener("click",()=>setTim
 syncAll();
 
 /* ---------- Generator ---------- */
-const RESTS=[{ex:30,round:90},{ex:20,round:75},{ex:15,round:60},{ex:10,round:60}];
+// Rest per level: from the database when served by tools/serve.py, otherwise these defaults.
+const RESTS=DATA.levels?DATA.levels.map(l=>({ex:l.ex,round:l.round})):[{ex:30,round:90},{ex:20,round:75},{ex:15,round:60},{ex:10,round:60}];
+const LEVEL_NAMES=["Beginner","Intermediate","Advanced","Beast"];
 const BLOCKS={20:2,30:3,45:4,60:5};
 const YIN={20:1,30:2,45:2,60:3}; // yin holds in the cool-down, by workout length
 const TEMPL=[
@@ -53,7 +57,7 @@ const TEMPL=[
   {slots:["plyoL","lunge","core"],jump:true}
 ];
 const reqs=x=>x.e?(Array.isArray(x.e)?x.e:[x.e]):[];
-const ok=(x,s)=>(x.l||1)<=s.level && !(x.pt&&s.partner!=="on") && !(x.sp&&s.sprints==="none") && reqs(x).every(r=>r.split("|").some(q=>s.equip.includes(q)));
+const ok=(x,s)=>!x.rt && (x.l||1)<=s.level && !(x.pt&&s.partner!=="on") && !(x.sp&&s.sprints==="none") && reqs(x).every(r=>r.split("|").some(q=>s.equip.includes(q)));
 // Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it.
 const KIT={20:3,30:4,45:5,60:6}; // most equipment types in one workout, by length
 // For each requirement the kit doesn't cover yet, the options the user has (one of them gets added).
@@ -128,9 +132,9 @@ function generate(s){
   if(oc.length) blocks.unshift({name:"Obstacle course",rounds:1,course:true,items:oc});
   if(g.length) blocks.push({name:"Grip finisher",rounds:2,items:g.map(id=>({id,pat:"grip"}))});
   // Warm-up: pulse raiser, full-body flow, two mobility drills, then a second pulse raiser.
-  const pulse=shuffle(["jacks","high-knees","butt-kicks","lat-shuffle","seal-jacks","skip-in-place","a-skip"]),
+  const pulse=shuffle(["jacks","high-knees","butt-kicks","lat-shuffle","seal-jacks","skip-in-place","a-skip","rope-easy"].filter(id=>ok(BY[id],s))),
         flow=shuffle(["inchworm","wgs","dog-cobra","bear-squat","spiderman-reach"]),
-        mob=shuffle(["squat-reach","leg-swings","arm-circles","cat-cow","bridge-w","hip-circles","hip-9090","knee-hug","open-book","scap-pushup","ankle-rocks","lunge-rotate","calf-raises","tib-raises"]);
+        mob=shuffle(["squat-reach","leg-swings","arm-circles","cat-cow","bridge-w","hip-circles","hip-9090","knee-hug","open-book","scap-pushup","ankle-rocks","lunge-rotate","calf-raises","tib-raises","band-dislocate","band-pull-apart-w"].filter(id=>ok(BY[id],s)));
   const warm=[pulse[0],flow[0],mob[0],mob[1],pulse[1]];
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
   const stretch=shuffle(["hip-flexor","figure4","ham-fold","thread","chest-wall","quad-stretch","calf-wall","shoulder-cross","seated-twist","neck-side","cobra-stretch","wrist-stretch"]),
@@ -218,9 +222,11 @@ function render(){
   <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
   <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
   <div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button></div>
+  ${saveHTML()}
   <section class="sec"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
   ${(()=>{const g=equipList(W);return g.length?`<ul class="gear">${g.map(([lab,uses])=>`<li><label><input type="checkbox"><span><b>${lab}</b><small>${[...uses].join(", ")}</small></span></label></li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`})()}
   </section>
+  ${evalsHTML()}
   <section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
   <div class="list">${W.warm.map(id=>row(id,holdLabel(id,WARM_SECS),false)).join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
@@ -234,6 +240,8 @@ function render(){
   plan.innerHTML=h; plan.hidden=false;
   document.getElementById("start").onclick=startFollow;
   document.getElementById("again").onclick=build;
+  const sf=document.getElementById("saveForm"); if(sf) sf.onsubmit=saveCurrent;
+  const eb=document.getElementById("evalBtn"); if(eb) eb.onclick=()=>openEval(W.savedId,W.name,estimateSecs(W));
 }
 plan.addEventListener("click",e=>{
   const b=e.target.closest(".swap"); if(!b) return;
@@ -245,7 +253,8 @@ plan.addEventListener("click",e=>{
   // Swap within the kit the rest of the workout already uses.
   const kit=kitOf(W.blocks.flatMap((bl,bj)=>bl.items.filter((x,xj)=>bj!==bi||xj!==ii).map(x=>x.id)),ss);
   const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
-  if(id){it.id=id; save("fbw-workout",W); render();
+  if(id){it.id=id; if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
+    save("fbw-workout",W); render();
     const nb=plan.querySelector(`.swap[data-where="${bi}-${ii}"]`); if(nb) nb.focus();}
   else {b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)}
 });
@@ -269,7 +278,7 @@ function beep(freq=880,dur=.15){
     o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+dur);}catch(e){}
 }
 function startFollow(){
-  F.seq=sequence(W); F.i=0; fEl.classList.add("on"); document.body.style.overflow="hidden";
+  F.seq=sequence(W); F.i=0; F.run={start:Date.now(),paused:0}; fEl.classList.add("on"); document.body.style.overflow="hidden";
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>F.lock=l).catch(()=>{})}catch(e){}
   beep(660,.05); show();
 }
@@ -282,8 +291,14 @@ function nextSetName(from){for(let k=from;k<F.seq.length;k++) if(F.seq[k].id) re
 function show(){
   clearInterval(F.t); F.paused=false; F.half=null; F.done=null;
   const st=F.seq[F.i];
-  if(!st){fMain.innerHTML=`<p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session. Drink some water.</p>`;
-    fPos.textContent="Done"; fProg.style.width="100%"; fPrim.textContent="Close"; fPrim.onclick=stopFollow; beep(990,.3); return;}
+  if(!st){
+    // Remember how long the run really took, so the evaluation can be pre-filled.
+    if(F.run){W.lastRun={started_at:new Date(F.run.start).toISOString(),minutes:Math.max(1,Math.round((Date.now()-F.run.start-F.run.paused)/60000))}; F.run=null; save("fbw-workout",W);}
+    const mins=W.lastRun?` It took about ${W.lastRun.minutes} minutes.`:"";
+    fMain.innerHTML=`<p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session.${mins} Drink some water.</p>
+      ${API.on?(W.savedId?`<button class="evalnow" id="evalNow">Evaluate this workout</button>`:`<p class="fnext">Save the workout with a name to evaluate it.</p>`):""}`;
+    const en=document.getElementById("evalNow"); if(en) en.onclick=()=>{stopFollow(); openEval(W.savedId,W.name,estimateSecs(W))};
+    fPos.textContent="Done"; fProg.style.width="100%"; fPrim.textContent="Close"; fPrim.onclick=()=>{stopFollow(); render()}; beep(990,.3); return;}
   fPos.textContent=`Step ${F.i+1} of ${F.seq.length}`;
   fProg.style.width=(F.i/F.seq.length*100)+"%";
   fMain.classList.toggle("isjump",!!(st.id&&isJump(st.id)));
@@ -331,10 +346,134 @@ function countdown(secs,done){
   },200);
 }
 function togglePause(){
-  if(!F.paused){F.left=(F.end-Date.now())/1000; clearInterval(F.t); F.paused=true; fPrim.textContent="Resume";}
-  else {F.paused=false; fPrim.textContent="Pause"; countdown(F.left);}
+  if(!F.paused){F.left=(F.end-Date.now())/1000; clearInterval(F.t); F.paused=true; F.pausedAt=Date.now(); fPrim.textContent="Resume";}
+  else {F.paused=false; if(F.run) F.run.paused+=Date.now()-F.pausedAt; fPrim.textContent="Pause"; countdown(F.left);}
 }
 document.getElementById("fclose").onclick=stopFollow;
 document.getElementById("fback").onclick=()=>{if(F.i>0){F.i--; if(F.seq[F.i].k==="rest"&&F.i>0) F.i--; show();}};
 document.getElementById("fskip").onclick=()=>{if(F.i<F.seq.length){F.i++;show()}};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&fEl.classList.contains("on")) stopFollow()});
+
+/* ---------- Saved workouts and evaluations (needs the database API of tools/serve.py) ---------- */
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+async function call(method,path,body){
+  const r=await fetch("api/"+path,{method,headers:{"Content-Type":"application/json"},body:body===undefined?undefined:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||`${r.status} ${r.statusText}`); return j;
+}
+const estimateSecs=w=>sequence(w).reduce((a,x)=>a+(x.k==="set"?SET_SECS:x.secs),0);
+const dateLabel=iso=>new Date(iso).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
+const stars=n=>n?"★".repeat(Math.round(n))+"☆".repeat(5-Math.round(n)):"";
+const FEEL={too_short:"Too short",about_right:"About right",too_long:"Too long"};
+
+// The workout in the shape api.save_workout expects: blocks in order, each move with its
+// prescription, time estimate and the equipment option it uses.
+function toDB(w,name){
+  const lv=w.settings.level, R=RESTS[lv-1], kit=kitOf(w.blocks.flatMap(b=>b.items.map(i=>i.id)),w.settings).have;
+  const gear=id=>reqs(BY[id]).map(r=>{const a=r.split("|");return a.find(q=>kit.has(q))||a.find(q=>w.settings.equip.includes(q))||a[0]});
+  const timed=(id,d)=>({id,pat:BY[id].p,prescription:`${holdSecs(id,d)}s`,hold:holdSecs(id,d),est:holdSecs(id,d),equipment:gear(id)});
+  const set=it=>{const p=reps(it.id,lv),m=/^(\d+)s( each side)?$/.exec(p||"");return {id:it.id,pat:it.pat,prescription:p,hold:m?+m[1]:null,est:SET_SECS,equipment:gear(it.id)}};
+  return {name,estimated_seconds:estimateSecs(w),settings:w.settings,blocks:[
+    {kind:"warmup",name:"Warm-up",rounds:1,items:w.warm.map(id=>timed(id,WARM_SECS))},
+    ...w.blocks.map(b=>({kind:b.course?"course":b.name==="Grip finisher"?"grip":"main",name:b.name,rounds:b.rounds,
+      rest_ex:b.course?0:R.ex,rest_round:b.course?90:R.round,items:b.items.map(set)})),
+    {kind:"cooldown",name:"Cool-down",rounds:1,items:w.cool.map(id=>timed(id,COOL_SECS))}]};
+}
+
+function saveHTML(){
+  if(!API.on) return "";
+  if(W.savedId) return `<p class="saveline">Saved as <b>${esc(W.name)}</b>. <button class="linkbtn" id="evalBtn">Evaluate it</button></p>`;
+  return `<form class="saveform" id="saveForm"><label for="wname">${W.editedFrom?`Changed since you saved it as “${esc(W.editedFrom)}”. Save as a new workout:`:"Like it? Save it to do again and evaluate later."}</label>
+    <div><input id="wname" name="name" required maxlength="80" autocomplete="off" placeholder="Name, e.g. Tuesday legs"><button>Save workout</button></div>
+    <p class="err" id="saveErr" role="alert"></p></form>`;
+}
+async function saveCurrent(e){
+  e.preventDefault();
+  const name=document.getElementById("wname").value.trim(), err=document.getElementById("saveErr");
+  if(!name){err.textContent="Give the workout a name first."; return}
+  try{
+    const {id}=await call("POST","workouts",toDB(W,name));
+    W.savedId=id; W.name=name; W.sessions=[]; delete W.editedFrom; save("fbw-workout",W); render(); loadSaved();
+  }catch(x){err.textContent=x.message}
+}
+
+function evalsHTML(){
+  if(!API.on||!W.savedId||!W.sessions||!W.sessions.length) return "";
+  const crit=DATA.criteria||[];
+  return `<section class="sec"><h2>Your evaluations</h2><ul class="evals">${W.sessions.map(s=>{
+    const d=s.delta_seconds, mins=s.active_seconds?Math.round(s.active_seconds/60):null;
+    return `<li><b>${dateLabel(s.started_at)}</b> ${s.stars?`<span class="stars" aria-label="${s.stars} of 5 stars">${stars(s.stars)}</span>`:""}
+      <small>${mins?`${mins} min (${d>0?"+":""}${Math.round(d/60)} vs estimate)`:"Time not recorded"}${s.time_feel?`, felt ${FEEL[s.time_feel].toLowerCase()}`:""}${s.completed?"":", not finished"}</small>
+      ${crit.filter(c=>s.scores[c.code]).length?`<small>${crit.filter(c=>s.scores[c.code]).map(c=>`${esc(c.name)} ${s.scores[c.code]}/5`).join(" · ")}</small>`:""}
+      ${s.comments.map(c=>`<q>${esc(c)}</q>`).join("")}</li>`}).join("")}</ul></section>`;
+}
+
+const savedEl=document.getElementById("saved");
+let savedOpen=false;
+async function loadSaved(){
+  if(!API.on) return;
+  let list;
+  try{list=await call("GET","workouts")}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
+  savedEl.hidden=false;
+  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${list.length?`${list.length} saved`:"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
+    ${list.length?`<ul class="savedlist">${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.duration} min hard work<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
+      <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
+      :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
+  document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);
+}
+savedEl.addEventListener("click",async e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  try{
+    if(b.dataset.open) await openSaved(+b.dataset.open);
+    else if(b.dataset.eval) openEval(+b.dataset.eval,b.dataset.name,+b.dataset.est);
+    else if(b.dataset.del&&confirm(`Delete “${b.dataset.name}” and its evaluations?`)){
+      await call("DELETE",`workouts/${b.dataset.del}`);
+      if(W&&W.savedId===+b.dataset.del){delete W.savedId; delete W.name; delete W.sessions; save("fbw-workout",W); render()}
+      loadSaved();
+    }
+  }catch(x){alert(x.message)}
+});
+async function openSaved(id){
+  const w=await call("GET",`workouts/${id}`);
+  W={settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions};
+  save("fbw-workout",W); render();
+  plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+}
+
+/* Evaluation dialog: date, actual time, how the length felt, stars, a 1-5 score per criterion, comment. */
+const dlg=document.getElementById("evalDlg");
+function pickHTML(name,opts,label){
+  return `<fieldset class="pick"><legend>${label}</legend><div class="seg">${opts.map(([v,t])=>`<label><input type="radio" name="${name}" value="${v}"><span>${t}</span></label>`).join("")}</div></fieldset>`;
+}
+function openEval(id,name,estSecs){
+  const run=W&&W.savedId===id&&W.lastRun, today=new Date(), iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  dlg.innerHTML=`<form method="dialog" id="evalForm">
+    <h2 id="evalTitle">Evaluate “${esc(name)}”</h2>
+    <div class="row2"><label>Date<input type="date" name="date" required value="${iso(run?new Date(run.started_at):today)}" max="${iso(today)}"></label>
+      <label>Actual time, minutes<input type="number" name="minutes" min="1" max="300" inputmode="numeric" value="${run?run.minutes:""}" placeholder="${Math.round(estSecs/60)}"></label></div>
+    <p class="hint">Estimated about ${Math.round(estSecs/60)} minutes in total.${run?" Pre-filled from your follow-along run.":""}</p>
+    <label class="check"><input type="checkbox" name="completed" checked> I finished the whole workout</label>
+    ${pickHTML("feel",Object.entries(FEEL),"The length felt")}
+    ${pickHTML("stars",[1,2,3,4,5].map(n=>[n,`${n} ★`]),"Overall rating, 1 to 5 stars")}
+    ${(DATA.criteria||[]).map(c=>`<fieldset class="pick crit"><legend>${esc(c.name)}</legend><div class="scale"><div class="seg">${[1,2,3,4,5].map(n=>`<label><input type="radio" name="c_${c.code}" value="${n}"><span>${n}</span></label>`).join("")}</div><div class="ends"><small>1: ${esc(c.low)}</small><small>5: ${esc(c.high)}</small></div></div></fieldset>`).join("")}
+    <label>Comment<textarea name="comment" rows="3" maxlength="2000" placeholder="What worked, what didn't, what to change next time"></textarea></label>
+    <p class="err" id="evalErr" role="alert"></p>
+    <div class="actions"><button type="button" id="evalCancel">Cancel</button><button class="go" value="save">Save evaluation</button></div></form>`;
+  document.getElementById("evalCancel").onclick=()=>dlg.close();
+  document.getElementById("evalForm").onsubmit=async e=>{
+    e.preventDefault();
+    const f=new FormData(e.target), scores={};
+    (DATA.criteria||[]).forEach(c=>{if(f.get("c_"+c.code)) scores[c.code]=+f.get("c_"+c.code)});
+    const day=f.get("date"), started=run&&iso(new Date(run.started_at))===day?run.started_at:new Date(day+"T12:00:00").toISOString();
+    try{
+      await call("POST",`workouts/${id}/evaluations`,{started_at:started,active_minutes:f.get("minutes")||null,completed:f.get("completed")==="on",
+        time_feel:f.get("feel")||null,stars:f.get("stars")?+f.get("stars"):null,scores,comment:f.get("comment")});
+      dlg.close();
+      if(W&&W.savedId===id){W.sessions=(await call("GET",`workouts/${id}`)).sessions; delete W.lastRun; save("fbw-workout",W); render()}
+      loadSaved();
+    }catch(x){document.getElementById("evalErr").textContent=x.message}
+  };
+  dlg.showModal();
+}
+
+// Turn the database features on only when the local server's API answers.
+call("GET","workouts").then(()=>{API.on=true; loadSaved(); render()}).catch(()=>{});

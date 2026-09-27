@@ -88,6 +88,13 @@ def validate(data: dict, app_js: str | None = None) -> list[str]:
                and not e.get("partner") for e in exercises):
         errors.append("no bodyweight beginner plyoL sprint; 'Sprints: One per block' could come up empty")
 
+    seen_names: dict[str, str] = {}
+    for ex in exercises:
+        name = str(ex.get("name", "")).strip().lower()
+        if name in seen_names:
+            errors.append(f"exercise '{ex.get('id')}': same name as '{seen_names[name]}' ({ex.get('name')})")
+        seen_names.setdefault(name, ex.get("id"))
+
     for key in ("extras", "quantities"):
         for ex_id in data.get(key, {}):
             if ex_id not in ids:

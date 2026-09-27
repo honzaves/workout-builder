@@ -1,3 +1,10 @@
+/* Fonts are bundled in web/fonts (SIL Open Font License, see OFL.txt): no requests to other sites. */
+@font-face{font-family:"Barlow";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/barlow-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:500;font-display:swap;src:url("../fonts/barlow-latin-500-normal.woff2") format("woff2")}
+@font-face{font-family:"Barlow";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/barlow-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/barlow-condensed-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:700;font-display:swap;src:url("../fonts/barlow-condensed-latin-700-normal.woff2") format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-style:normal;font-weight:800;font-display:swap;src:url("../fonts/barlow-condensed-latin-800-normal.woff2") format("woff2")}
 :root{
   --bg:#EEF1EE; --surface:#FFFFFF; --ink:#17212B; --muted:#5E6A73; --line:#D5DBD8;
   --strength:#2C6E6A; --jump:#F0B429; --jump-ink:#3A2A00; --soft:#B9C2BE; --focus:#2C6E6A;
@@ -110,3 +117,66 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .fbtns .main{flex:1;background:var(--ink);color:var(--bg);font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:24px;font-weight:700}
 .isjump .fname{box-shadow:inset 0 -12px 0 var(--jump)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+/* saving */
+.saveform{margin:-14px 0 30px}
+.saveform label{display:block;font-size:15px;color:var(--muted);margin:0 0 6px}
+.saveform div{display:flex;gap:8px}
+.saveform input{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.saveform button{border:0;border-radius:10px;padding:10px 16px;background:var(--strength);color:#fff;font-weight:600;white-space:nowrap}
+.saveline{margin:-14px 0 30px;font-size:15px;color:var(--muted)}
+.saveline b{color:var(--ink)}
+.linkbtn{border:0;background:transparent;color:var(--strength);font-weight:600;padding:0;text-decoration:underline;text-underline-offset:3px}
+.err{color:#B3261E;font-size:15px;margin:6px 0 0;min-height:0}
+.err:empty{display:none}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .err{color:#F2B8B5}}
+:root[data-theme="dark"] .err{color:#F2B8B5}
+
+/* saved workouts */
+.saved{margin-top:24px}
+.saved > details{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.saved .note{padding:0 14px 12px;margin:0;color:var(--muted);font-size:15px}
+.savedlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.savedlist li{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.savedlist li:first-child{border-top:0}
+.savedlist .nm small{font-size:14px}
+.rowbtns{display:flex;gap:6px}
+.rowbtns button{border:1px solid var(--line);background:transparent;border-radius:8px;padding:6px 10px;font-size:14px}
+.rowbtns .del{color:var(--muted)}
+.stars{color:var(--jump);letter-spacing:1px}
+:root:not([data-theme="dark"]) .stars{color:#B7800A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .stars{color:var(--jump)}}
+
+/* evaluations on a saved workout */
+.evals{list-style:none;margin:10px 0 0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.evals li{padding:12px 14px;border-top:1px solid var(--line)}
+.evals li:first-child{border-top:0}
+.evals small{display:block;color:var(--muted);font-size:14px}
+.evals q{display:block;margin-top:4px;font-style:italic}
+
+/* evaluation dialog */
+.dlg{border:0;border-radius:18px;padding:0;background:var(--bg);color:var(--ink);width:min(560px,calc(100% - 24px));max-height:calc(100% - 24px)}
+.dlg::backdrop{background:rgba(10,14,18,.55)}
+.dlg form{padding:20px 18px 18px}
+.dlg h2{font-size:30px;line-height:1.05;margin:0 0 14px}
+.dlg label{display:block;font-weight:600;font-size:15px;margin:0 0 12px}
+.dlg input[type=date],.dlg input[type=number],.dlg textarea{display:block;width:100%;margin-top:5px;font:inherit;font-weight:400;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:14px;color:var(--muted);margin:-6px 0 12px}
+.dlg .check{display:flex;gap:8px;align-items:center;font-weight:500}
+.dlg .check input{width:18px;height:18px;accent-color:var(--strength)}
+.pick{border:0;margin:0 0 14px;padding:0}
+.pick legend{font-weight:600;font-size:15px;padding:0;margin:0 0 6px}
+.pick .seg label{margin:0;font-weight:500}
+.pick input{position:absolute;opacity:0;width:1px;height:1px}
+.pick span{display:inline-block;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 13px;font-size:15px;cursor:pointer}
+.pick input:checked + span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pick input:focus-visible + span{outline:3px solid var(--focus);outline-offset:2px}
+.scale{display:inline-block;max-width:100%}
+.scale .seg{flex-wrap:nowrap}
+.scale .seg label{flex:1}
+.scale .seg span{display:block;text-align:center;min-width:44px}
+.ends{display:flex;justify-content:space-between;gap:12px;margin-top:4px}
+.ends small{font-size:13px;color:var(--muted)}
+.dlg .actions{margin:16px 0 0}
+.evalnow{margin-top:8px;padding:14px 18px;border-radius:12px;border:0;background:var(--strength);color:#fff;font-weight:600;font-size:17px}

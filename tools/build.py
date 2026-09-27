@@ -8,6 +8,7 @@ Usage:
 """
 from __future__ import annotations
 
+import base64
 import json
 import re
 from pathlib import Path
@@ -23,9 +24,17 @@ def _safe_for_script(text: str) -> str:
     return text.replace("</script", "<\\/script")
 
 
+def _embed_fonts(css: str) -> str:
+    """Replace url("../fonts/x.woff2") with a data URI, so the single file needs no font files."""
+    def data_uri(m: re.Match) -> str:
+        font = (WEB / "fonts" / m.group(1)).read_bytes()
+        return f'url("data:font/woff2;base64,{base64.b64encode(font).decode()}")'
+    return re.sub(r'url\("\.\./fonts/([^"]+\.woff2)"\)', data_uri, css)
+
+
 def build() -> Path:
     html = (WEB / "index.html").read_text(encoding="utf-8")
-    css = (WEB / "css" / "styles.css").read_text(encoding="utf-8")
+    css = _embed_fonts((WEB / "css" / "styles.css").read_text(encoding="utf-8"))
     js = (WEB / "js" / "app.js").read_text(encoding="utf-8")
     data = json.loads((WEB / "data" / "exercises.json").read_text(encoding="utf-8"))
 

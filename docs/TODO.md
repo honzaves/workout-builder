@@ -1,4 +1,5 @@
-- Move everything to Database
 - Option to add new exercise manually
 - Option to print the workout
 - Try to find graphical representation of the movement or generate one (stick figures with arrows indicating direction, schematic drawings for equipment)
+- how to run on iphone
+- zercher squats

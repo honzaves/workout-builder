@@ -14,11 +14,12 @@ python3 tools/serve.py --no-browser --port 9000
 python3 tools/build.py                  # bundle into dist/workout-builder.html (single self-contained file)
 python3 tools/serve.py --dist           # serve the built file
 python3 tools/validate.py               # check web/data/exercises.json; run after every data edit
+python3 tools/db_import.py              # sync exercises.json into db/workouts.db (serve.py also does this on start)
 uv run --with pytest pytest            # all tests (pytest.ini sets testpaths=tests, pythonpath=.)
 uv run --with pytest pytest tests/test_data.py::test_build_produces_self_contained_html   # single test
 ```
 
-`.venv/` was created by uv and has no pip, so `pip install` inside it fails; use `uv run --with pytest` for tests. Opening `web/index.html` via `file://` fails because the data is fetched, so always use the server or the built file. There is no linter or formatter configured.
+Needs SQLite 3.44+ (the one bundled with Python). `.venv/` was created by uv and has no pip, so `pip install` inside it fails; use `uv run --with pytest` for tests. Opening `web/index.html` via `file://` fails because the data is fetched, so always use the server or the built file. There is no linter or formatter configured.
 
 ## Architecture
 
@@ -26,7 +27,7 @@ uv run --with pytest pytest tests/test_data.py::test_build_produces_self_contain
 
 **Two loading modes, same app.js.**
 - Dev: a `<script>` between `<!-- BUILD:SCRIPTS -->` markers in `index.html` fetches the JSON, sets `window.WORKOUT_DATA`, then injects `js/app.js`.
-- Build: `tools/build.py` regex-replaces the `styles.css` `<link>` and the `BUILD:SCRIPTS` block with inlined CSS, data and JS (escaping `</script`). Keep those markers and the exact `<link rel="stylesheet" href="css/styles.css">` tag intact, or the build fails. The only external resource is the Google Fonts stylesheet.
+- Build: `tools/build.py` regex-replaces the `styles.css` `<link>` and the `BUILD:SCRIPTS` block with inlined CSS, data and JS (escaping `</script`). Keep those markers and the exact `<link rel="stylesheet" href="css/styles.css">` tag intact, or the build fails. Fonts are bundled in `web/fonts/` (Barlow, Barlow Condensed; OFL) and `build.py` embeds them as base64 data URIs, so neither version fetches anything from other sites. Don't add external resources.
 
 **Field-name mapping.** The JSON uses readable names, and `app.js` remaps them to short keys via `FIELD_MAP` (`name→n`, `pattern→p`, `also_pattern→p2`, `level→l`, `equipment→e`, `reps→r`, `steps→s`, `cue→c`, `avoid→x`, `combo→cb`, `slow_to_fast→ct`, `partner→pt`, `sprint→sp`, `secs→t`, `switch_sides→sw`). A new exercise field must be added in three places: `FIELD_MAP` in `app.js`, `ALLOWED_FIELDS` in `tools/validate.py`, and the README field table.
 
@@ -42,6 +43,10 @@ uv run --with pytest pytest tests/test_data.py::test_build_produces_self_contain
 **Persistence.** localStorage keys `fbw-settings` and `fbw-workout`. A saved workout is discarded on load if any of its ids no longer exist, so renaming an exercise id silently invalidates saved workouts.
 
 **Validation rules worth knowing (`tools/validate.py`).** Levels are 1–4 (Beginner..Beast); `reps` has 3–4 entries with `""` below the exercise's level. Timed patterns (`warm`, `cool`) skip level/reps. Every core slot (`plyoL squat hinge lunge push pull core`) must keep at least one level-1, bodyweight, non-partner exercise, or workouts can come up empty. `extras`/`quantities` keys must be real exercise ids.
+
+## Database and API
+
+`db/schema.sql` is the SQLite schema (catalogue + saved workouts, sessions, ratings, evaluations, comments); `docs/database.md` explains the design. `exercises.json` stays the source you edit: `tools/serve.py` syncs it into `db/workouts.db` on every start via `tools/db_import.py` (upsert by slug, so exercise ids stay stable; removed exercises get `is_active = 0` and come back to the app as `retired: true`, which `ok()` skips). The app loads the catalogue from `GET /api/catalog` (same shape as the JSON plus `levels` and `criteria`), falling back to `data/exercises.json` on other static servers. Saving and evaluating go through `tools/api.py`; the app switches those features on only if `GET /api/workouts` answers (`API.on`), so the built single file still works without a server. `toDB()` in `app.js` converts the on-screen workout into the shape `api.save_workout` expects. The schema mirrors the JSON: `pattern`/`also_pattern` → `exercise_pattern`, `"a|b"` equipment → `exercise_requirement` + `requirement_option`, `extras` → `setup_item`, `quantities` → `exercise_coaching.setup_note`, the warm-up/cool-down id lists → `exercise_phase_role`. When adding an exercise field, also decide where it lives in the schema. SQLite needs `PRAGMA foreign_keys = ON` per connection.
 
 ## Conventions
 
