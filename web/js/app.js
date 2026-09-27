@@ -197,7 +197,12 @@ function equipList(w){
    hold: bb (bar on back), fr (bar across the front of the shoulders), bbh (bar in the hands), kb / kb2 (bell hangs along the forearm),
    kbr / kbr2 (one / two bells racked at the chest), zbb / zsb (bar / sandbag in the crook of the elbows, Zercher), eq (bells hung from the bar ends), goblet, db1 / db2 (dumbbell in one / both hands), sb (sandbag), med (ball), pl (plate edge-on),
    vest, band (feet to hands), trx / rope (anchor to hands), lm (landmine; needs anchor), bbl (bar seen lengthwise, plates edge-on),
-   hammer (sledgehammer along the forearm), jr (jump rope). */
+   hammer (sledgehammer along the forearm), jr (jump rope).
+   Scene items (scene.items; one kind per item): fig (pose name or {pose,x,y,...overrides}; x/y shift everything, overrides included; +ghost),
+   kb [x,y], plate [x,y] (+r), box [x,w,h], bench [x,w,h], rack {x,top,hook,pin}, bar [x,y] (pull-up bar), wall [x,side], bosu [x,flatSideUp],
+   ball [x,y,r], sled [x,handleHeight], tire [x,angle,w,h], ghd [x,rollerDist], slab [x,y,len,angle] (plate or towel edge-on), sb [x,y], medb [x,y],
+   bbl [x,y] (bar lengthwise), anchor [x,y], line [[x,y],...] (strap/band/rope), guide [[x,y],...] (dashed), arrow [[x,y],...] (+dash/faint),
+   swap [x,y], label [x,y,text]. Top view (scene.top): pb [x,y,angle] (parallette), sq [x,y,size] (box), me [x,y] (person). */
 const FIG=(()=>{
   const L={th:43,sh:42,ft:17,ua:29,fa:27,to:50,nk:4,hr:10.5}, POSES=DATA.poses||{}, FIGS=DATA.figures||{};
   const rad=d=>d*Math.PI/180, dir=a=>[Math.sin(rad(a)),-Math.cos(rad(a))], upv=t=>[Math.sin(rad(t)),Math.cos(rad(t))];

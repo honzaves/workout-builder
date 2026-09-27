@@ -55,7 +55,7 @@ The server only listens on your own machine (`127.0.0.1`), so other devices on y
 | `python3 tools/figures.py put file.json` | Adds or replaces poses and drawings; nothing is written if they don't validate |
 | `uv run --with pytest pytest` | Runs the tests |
 
-The helper scripts need Python 3.8 or newer with SQLite 3.44 or newer (check with `python3 -c "import sqlite3; print(sqlite3.sqlite_version)"`). Running them through uv (`uv run tools/serve.py`) uses the Python version pinned in `pyproject.toml` instead.
+The helper scripts need Python 3.9 or newer with SQLite 3.44 or newer (check with `python3 -c "import sqlite3; print(sqlite3.sqlite_version)"`). Running them through uv (`uv run tools/serve.py`) uses the Python version pinned in `pyproject.toml` instead.
 
 ### Tests
 
@@ -75,7 +75,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-The tests check the exercises in the database and the validator, that the build produces a working single file from the database, that seeding from the JSON snapshot loads every exercise, that nothing runs on a missing or empty database, and that saving, listing, evaluating and deleting work through the HTTP API. The database tests run on temporary copies, never on `db/workouts.db`.
+The tests check the exercises in the database and the validator, that the build produces a working single file from the database, that seeding from the JSON snapshot loads every exercise, that nothing runs on a missing or empty database, that bad drawings are rejected without writing anything, and that saving, listing, evaluating and deleting work through the HTTP API. The database tests run on temporary copies, never on `db/workouts.db`.
 
 ## Project layout
 
@@ -87,9 +87,10 @@ workout-builder/
 │   ├── fonts/                Barlow and Barlow Condensed (SIL Open Font License, see OFL.txt)
 │   └── js/app.js             generator, rendering, follow-along timer, saving and evaluating
 ├── db/
-│   ├── schema.sql            SQLite schema: catalogue, workouts, sessions, ratings, evaluations, comments
+│   ├── schema.sql            SQLite schema: catalogue, drawings, workouts, sessions, ratings, evaluations, comments
+│   ├── migrations/           changes applied to an existing database (sqlite3 db/workouts.db < file)
 │   ├── seed/exercises.json   historical snapshot of the catalogue; only db_import.py reads it
-│   └── workouts.db           the database: exercises, equipment, levels and saved workouts (the source you edit)
+│   └── workouts.db           the database: exercises, drawings, equipment, levels and saved workouts (the source you edit)
 ├── tools/
 │   ├── serve.py              local server: static files plus the JSON API
 │   ├── api.py                database access: the catalogue for the app; save, list, open, delete and evaluate workouts
@@ -104,7 +105,7 @@ workout-builder/
 
 ## Adding or editing exercises
 
-Exercises live in the database, `db/workouts.db`. Edit them with the `sqlite3` command-line tool or a GUI such as [DB Browser for SQLite](https://sqlitebrowser.org/), then run `python3 tools/validate.py` and refresh the browser. The server reads the database on every request, so no restart is needed. `db/seed/exercises.json` is only a record of the catalogue from before the switch; editing it changes nothing.
+Exercises live in the database, `db/workouts.db`. Edit them with the `sqlite3` command-line tool or a GUI such as [DB Browser for SQLite](https://sqlitebrowser.org/), then run `python3 tools/validate.py` and refresh the browser. Add its drawings too (see [Movement drawings](#movement-drawings)). The server reads the database on every request, so no restart is needed. `db/seed/exercises.json` is only a record of the catalogue from before the switch; editing it changes nothing.
 
 Turn foreign keys on in every session (`PRAGMA foreign_keys = ON;`), or the database won't catch broken links. An exercise is spread over several tables; this adds a level 3 hinge that needs a stability ball and a kettlebell or dumbbell:
 
@@ -147,7 +148,9 @@ The validator also makes sure every main slot (`plyoL`, `squat`, `hinge`, `lunge
 
 ## Movement drawings
 
-Exercises can have simple drawings: side-view stick figures with equipment and arrows, or a view from above for obstacle courses. Each drawing illustrates one or more steps, usually 2 to 4 per exercise. They're stored in the database as small JSON descriptions (tables `figure_pose` and `exercise_figure`, see [`docs/database.md`](docs/database.md)) and drawn as SVG by `app.js`, so they cost almost nothing in size and follow the light and dark themes. They appear when you expand an exercise (and in the follow-along mode's instructions), captioned with the steps they show, and as a strip of small drawings on the printout. Every exercise has them, usually 2 to 4 per exercise.
+Every exercise has simple drawings, usually 2 to 4, each illustrating one or more of its steps: stick figures with equipment and arrows, seen from the side, from the front (for sideways moves) or from above (for obstacle courses). They're stored in the database as small JSON descriptions (tables `figure_pose` and `exercise_figure`, see [`docs/database.md`](docs/database.md)) and drawn as SVG by `app.js`, so they follow the light and dark themes; together they add about 0.5 MB to the built file. They appear when you expand an exercise (and in the follow-along mode's instructions), captioned with the steps they show, and as a strip of small drawings on the printout.
+
+A new exercise shows no drawings until you add some; the validator doesn't require them, but it reports how many exercises have drawings.
 
 To add or change drawings, write a JSON file and load it:
 
