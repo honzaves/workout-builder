@@ -27,10 +27,11 @@ CORE_SLOTS = ["plyoL", "squat", "hinge", "lunge", "push", "pull", "core"]
 PHASES = {"pulse": ("warm", 2), "flow": ("warm", 1), "mob": ("warm", 2),
           "stretch": ("cool", 2), "yin": ("cool", 3), "calm": ("cool", 1)}
 # Movement drawings (figure_pose, exercise_figure): what the drawing code in app.js understands.
-POSE_KEYS = {"hip", "t", "hd", "ln", "lf", "an", "af", "hold", "hi", "anchor", "flip", "who"}
+POSE_KEYS = {"hip", "t", "hd", "ln", "lf", "an", "af", "hold", "hi", "anchor", "flip", "who", "front"}
 LIMB_KEYS = {"to", "bend", "a", "j", "toe", "ft"}
-HOLDS = {"bb", "kb", "db2", "lm"}
-ITEM_KINDS = {"fig", "kb", "box", "rack", "plate", "bar", "arrow", "swap", "guide", "label", "pb", "sq", "me"}
+HOLDS = {"bb", "fr", "bbh", "kb", "kb2", "kbr", "kbr2", "zbb", "zsb", "eq", "bbl", "hammer", "jr", "goblet", "db1", "db2", "sb", "med", "pl", "vest", "band", "trx", "rope", "lm"}
+ITEM_KINDS = {"fig", "kb", "box", "rack", "plate", "bar", "arrow", "swap", "guide", "label", "pb", "sq", "me",
+              "wall", "bench", "bosu", "ball", "sled", "slab", "anchor", "sb", "medb", "tire", "ghd", "line", "bbl"}
 ITEM_FLAGS = {"ghost", "dash", "faint", "r"}
 ALLOWED_FIELDS = {"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
                   "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides", "retired"}
@@ -161,8 +162,8 @@ def _pose_errors(pose: dict, where: str) -> list[str]:
             errors.append(f"{where}: limb '{key}' bend must be f, b, u or d")
     if pose.get("hold") not in (None, *HOLDS):
         errors.append(f"{where}: unknown hold '{pose['hold']}'")
-    if pose.get("hold") == "lm" and "anchor" not in pose:
-        errors.append(f"{where}: a landmine hold needs an 'anchor'")
+    if pose.get("hold") in ("lm", "trx", "rope") and "anchor" not in pose:
+        errors.append(f"{where}: a '{pose['hold']}' hold needs an 'anchor'")
     if set(pose.get("hi", [])) - {"torso", "ln", "lf", "an", "af"}:
         errors.append(f"{where}: 'hi' can only list torso, ln, lf, an, af")
     return errors
@@ -203,7 +204,9 @@ def validate_figures(data: dict) -> list[str]:
                 if isinstance(fig_ref, str):
                     fig_ref = {"pose": fig_ref}
                 if isinstance(fig_ref, dict):
-                    if "pose" in fig_ref and fig_ref["pose"] not in poses:
+                    if "pose" in fig_ref and not isinstance(fig_ref["pose"], str):
+                        errors.append(f"{where} item {i}: 'pose' must be a pose name")
+                    elif "pose" in fig_ref and fig_ref["pose"] not in poses:
                         errors.append(f"{where} item {i}: unknown pose '{fig_ref['pose']}'")
                     elif "pose" not in fig_ref and "hip" not in fig_ref:
                         errors.append(f"{where} item {i}: a figure needs a 'pose' name or its own 'hip'")

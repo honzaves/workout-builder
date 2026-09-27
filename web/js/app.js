@@ -192,13 +192,19 @@ function equipList(w){
    Self-contained between these markers: tools/figures.py copies this section into its review pages.
    World units are about cm, y points up, the floor is y=0 and the figure faces +x.
    Limb angles: 0 down, 90 forward, 180 up, -90 back. Torso and head: 0 upright, positive leans forward.
-   A limb is {to:[x,y],bend} (two-bone IK, joint bends f/b/u/d), {a:[upper,lower]} (angles) or {j,to} (joints given). */
+   A limb is {to:[x,y],bend} (two-bone IK, joint bends f/b/u/d), {a:[upper,lower]} (angles) or {j,to} (joints given).
+   front:true draws the figure facing you (both sides in the near colour, legs from the hips' sides, arms from the shoulders' ends).
+   hold: bb (bar on back), fr (bar across the front of the shoulders), bbh (bar in the hands), kb / kb2 (bell hangs along the forearm),
+   kbr / kbr2 (one / two bells racked at the chest), zbb / zsb (bar / sandbag in the crook of the elbows, Zercher), eq (bells hung from the bar ends), goblet, db1 / db2 (dumbbell in one / both hands), sb (sandbag), med (ball), pl (plate edge-on),
+   vest, band (feet to hands), trx / rope (anchor to hands), lm (landmine; needs anchor), bbl (bar seen lengthwise, plates edge-on),
+   hammer (sledgehammer along the forearm), jr (jump rope). */
 const FIG=(()=>{
   const L={th:43,sh:42,ft:17,ua:29,fa:27,to:50,nk:4,hr:10.5}, POSES=DATA.poses||{}, FIGS=DATA.figures||{};
   const rad=d=>d*Math.PI/180, dir=a=>[Math.sin(rad(a)),-Math.cos(rad(a))], upv=t=>[Math.sin(rad(t)),Math.cos(rad(t))];
   const add=(p,v,k=1)=>[p[0]+v[0]*k,p[1]+v[1]*k], sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], len=v=>Math.hypot(v[0],v[1]);
   const unit=v=>{const d=len(v)||1;return [v[0]/d,v[1]/d]}, perp=v=>[-v[1],v[0]], isPt=o=>Array.isArray(o)&&o.length===2&&typeof o[0]==="number";
   const mapPts=(o,f,k)=>k==="a"?o:isPt(o)?f(o):Array.isArray(o)?o.map(x=>mapPts(x,f)):o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,mapPts(v,f,k)])):o;
+  const mapAll=(o,f)=>isPt(o)?f(o):o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,mapAll(v,f)])):o; // solved joints: every point, ankles (a) included
   const r1=v=>Math.round(v*10)/10, P=p=>`${r1(p[0])},${r1(p[1])}`;
   const pl=(pts,c)=>`<polyline class="${c}" points="${pts.map(P).join(" ")}"/>`, circ=(c,r,k)=>`<circle class="${k}" cx="${r1(c[0])}" cy="${r1(c[1])}" r="${r}"/>`;
   // A figure is a pose name, {pose,x,y,...overrides} (x/y shift the whole pose) or a full pose with its own hip.
@@ -209,11 +215,15 @@ const FIG=(()=>{
     const k={f:j=>j[0],b:j=>-j[0],u:j=>j[1],d:j=>-j[1]}[b]; return [k(c[0])>=k(c[1])?c[0]:c[1],T];
   }
   const limb=(R,s,l1,l2,b)=>s.j?[s.j,s.to]:s.a?(j=>[j,add(j,dir(s.a[1]),l2)])(add(R,dir(s.a[0]),l1)):ik(R,s.to,l1,l2,s.bend||b);
+  // Front view: the far side is the near side mirrored, unless given.
+  const mir=(s,c)=>s&&(s.j||s.to?{...s,to:s.to&&[2*c-s.to[0],s.to[1]],j:s.j&&[2*c-s.j[0],s.j[1]],toe:s.toe&&[2*c-s.toe[0],s.toe[1]],bend:{f:"b",b:"f"}[s.bend]||s.bend||"b",ft:s.ft!=null?-s.ft:undefined}:s.a?{...s,a:[-s.a[0],-s.a[1]]}:s);
   function solve(p){
-    const H=p.hip,t=p.t||0,S=add(H,upv(t),L.to),ln=p.ln||{to:[H[0],0]};
-    const leg=s=>{const [k,a]=limb(H,s,L.th,L.sh,"f");return {k,a,toe:s.toe||add(a,dir(s.ft??90),L.ft)}}, arm=s=>{const [e,h]=limb(S,s||{a:[0,0]},L.ua,L.fa,"b");return {e,h}};
-    let J={H,S,Hd:add(S,upv(t+(p.hd||0)),L.nk+L.hr),ln:leg(ln),lf:leg(p.lf||ln),an:arm(p.an),af:arm(p.af||p.an),bar:add(S,[-Math.cos(rad(t)),Math.sin(rad(t))],7)};
-    return p.flip?mapPts(J,q=>[2*H[0]-q[0],q[1]]):J;
+    const H=p.hip,t=p.t||0,S=add(H,upv(t),L.to),fv=!!p.front,w=fv?9:0,sw=fv?17:0;
+    const ln=p.ln||{to:[H[0]+(fv?12:0),0],ft:fv?80:90}, lf=p.lf||(fv?mir(ln,H[0]):ln), an=p.an||(fv?{a:[8,4]}:{a:[0,0]}), af=p.af||(fv?mir(an,S[0]):an);
+    const leg=(s,R)=>{const [k,a]=limb(R,s,L.th,L.sh,"f");return {k,a,toe:s.toe||add(a,dir(s.ft??90),fv?8:L.ft),R}}, arm=(s,R,b)=>{const [e,h]=limb(R,s,L.ua,L.fa,b);return {e,h,R}};
+    let J={H,S,t,fv,Hd:add(S,upv(t+(p.hd||0)),L.nk+L.hr),ln:leg(ln,add(H,[w,0])),lf:leg(lf,add(H,[-w,0])),an:arm(an,add(S,[sw,0]),fv?"f":"b"),af:arm(af,add(S,[-sw,0]),"b"),
+      bar:add(S,[-Math.cos(rad(t)),Math.sin(rad(t))],7),fr:add(S,[Math.cos(rad(t)),-Math.sin(rad(t))],9)};
+    return p.flip?mapAll(J,q=>[2*H[0]-q[0],q[1]]):J;
   }
   // Bounds are collected while drawing, so all drawings of one exercise can share a scale.
   function Box(){this.lo=[1e9,1e9];this.hi=[-1e9,-1e9];this.txt=[]}
@@ -222,15 +232,42 @@ const FIG=(()=>{
   const kb=(h,v,B)=>{const c=add(h,v,15),w=perp(v);B.pt(c,10.5);return pl([add(add(h,w,6),v,4),h,add(add(h,w,-6),v,4)],"fg-eqs")+pl([h,add(h,v,6)],"fg-eqs")+circ(c,10.5,"fg-eq")};
   const db=(h,v,B)=>{const w=perp(v),head=q=>{const s=[[-4.5,8],[4.5,8],[4.5,-8],[-4.5,-8]].map(([i,j])=>add(add(q,v,i),w,j));s.forEach(x=>B.pt(x));return `<polygon class="fg-eq" points="${s.map(P).join(" ")}"/>`};
     return pl([add(h,v,-12),add(h,v,12)],"fg-eqs")+head(add(h,v,-12))+head(add(h,v,12))};
+  const sandbag=(c,B)=>(B.pt(c,19),`<rect class="fg-eq" x="${r1(c[0]-19)}" y="${r1(c[1]-11)}" width="38" height="22" rx="11"/>`);
+  const edge=(c,ang,l,B)=>{const v=[Math.cos(rad(ang)),Math.sin(rad(ang))],a=add(c,v,-l/2),b=add(c,v,l/2);B.pt(a,3);B.pt(b,3);return pl([a,b],"fg-edge")};
+  const strap=(a,h,B)=>(B.pt(a),pl([a,h],"fg-strap"));
+  const barLong=(c,B)=>pl([add(c,[-64,0]),add(c,[64,0])],"fg-eqs")+edge(add(c,[-56,0]),90,44,B)+edge(add(c,[56,0]),90,44,B);
   const landmine=(A,h,B)=>{const v=unit(sub(A,h));B.pt(add(A,[-9,0]));B.pt(add(A,[9,8]));return `<polygon class="fg-eq" points="${P(add(A,[-9,0]))} ${P(add(A,[9,0]))} ${P(add(A,[0,8]))}"/>`+pl([h,A],"fg-eqs")+plate(add(h,v,20),17,B)};
   function figure(f,B,ghost){
-    const p=pose(f),J=solve(p),w=p.who||1,n=`fg-n${w}`,fr=`fg-f${w}`,ln=[J.H,J.ln.k,J.ln.a,J.ln.toe],lf=[J.H,J.lf.k,J.lf.a,J.lf.toe],an=[J.S,J.an.e,J.an.h],af=[J.S,J.af.e,J.af.h];
+    const p=pose(f),J=solve(p),w=p.who||1,n=`fg-n${w}`,fr=J.fv?n:`fg-f${w}`,ln=[J.ln.R,J.ln.k,J.ln.a,J.ln.toe],lf=[J.lf.R,J.lf.k,J.lf.a,J.lf.toe],an=[J.an.R,J.an.e,J.an.h],af=[J.af.R,J.af.e,J.af.h];
     [...ln,...lf,...an,...af].forEach(q=>B.pt(q,4)); B.pt(J.Hd,L.hr);
-    let back=p.hold==="bb"?plate(J.bar,21,B):"", glow="", mid=p.hold==="lm"?landmine(p.anchor,J.an.h,B):"", front="";
+    const h=p.hold, fade=x=>`<g opacity=".55">${x}</g>`, fa=unit(sub(J.an.h,J.an.e)), ff=unit(sub(J.af.h,J.af.e));
+    let back=h==="bb"?plate(J.bar,21,B):"", glow="", mid="", front="";
     if(!ghost) (p.hi||[]).forEach(k=>glow+=pl({torso:[J.H,J.S],ln,lf,an,af}[k],"fg-hi"));
-    if(p.hold==="kb") front=kb(J.an.h,unit(sub(J.an.h,J.an.e)),B);
-    if(p.hold==="db2") front=`<g opacity=".55">${db(J.af.h,[1,0],B)}</g>`+db(J.an.h,[1,0],B);
-    const s=back+glow+pl(af,`fg-limb ${fr}`)+pl(lf,`fg-limb ${fr}`)+pl([J.H,J.S],`fg-torso ${n}`)+pl([J.S,J.Hd],`fg-limb ${n}`)+circ(J.Hd,L.hr,`fg-head ${n}`)+mid+pl(ln,`fg-limb ${n}`)+pl(an,`fg-limb ${n}`)+front;
+    if(h==="lm") mid=landmine(p.anchor,J.an.h,B);
+    if(h==="sb") mid=sandbag(J.an.h,B);
+    if(h==="vest") mid=pl([add(J.H,upv(J.t),22),add(J.H,upv(J.t),46)],"fg-vest");
+    if(h==="fr") back=plate(J.fr,21,B);
+    if(h==="bbh") front=plate(J.an.h,21,B);
+    if(h==="kb") front=kb(J.an.h,fa,B);
+    if(h==="kb2") front=fade(kb(J.af.h,ff,B))+kb(J.an.h,fa,B);
+    if(h==="zsb") mid=sandbag(J.an.e,B);
+    if(h==="bbl") front=barLong(J.an.h,B);
+    if(h==="hammer"){const e=add(J.an.h,fa,62),w=perp(fa);B.pt(e,12);front=pl([add(J.an.h,fa,-6),e],"fg-eqs")+`<polygon class="fg-eq" points="${[add(add(e,w,12),fa,5),add(add(e,w,12),fa,-5),add(add(e,w,-12),fa,-5),add(add(e,w,-12),fa,5)].map(P).join(" ")}"/>`}
+    if(h==="jr") mid=(()=>{const lo=Math.min(J.ln.a[1],J.lf.a[1]),q=[J.an.h,add(J.an.h,[14,-40]),[J.H[0]+22,lo-4],[J.H[0]-22,lo-4],add(J.af.h,[-14,-40]),J.af.h];q.forEach(x=>B.pt(x));
+      let d=`M${P(q[0])}`;for(let i=1;i<q.length-1;i+=2)d+=` Q${P(q[i])} ${P(add(q[i],sub(q[i+1],q[i]),.5))}`;return `<path class="fg-strap" d="${d} L${P(q[q.length-1])}"/>`})();
+    if(h==="zbb") back=plate(J.an.e,21,B);
+    if(h==="eq") back=strap(J.bar,add(J.bar,[0,-14]),B)+kb(add(J.bar,[0,-14]),[0,-1],B);
+    if(h==="kbr") front=kb(J.an.h,unit([.35,-1]),B);
+    if(h==="kbr2") front=fade(kb(J.af.h,unit([.35,-1]),B))+kb(J.an.h,unit([.35,-1]),B);
+    if(h==="goblet") front=kb(J.an.h,[0,-1],B);
+    if(h==="db1") front=db(J.an.h,J.fv?[0,1]:[1,0],B);
+    if(h==="db2") front=fade(db(J.af.h,[1,0],B))+db(J.an.h,[1,0],B);
+    if(h==="med") front=(B.pt(J.an.h,12),circ(J.an.h,12,"fg-eq"));
+    if(h==="pl") front=edge(J.an.h,90,42,B);
+    if(h==="band") mid=strap(add(J.ln.a,sub(J.ln.toe,J.ln.a),.5),J.an.h,B)+(J.fv?strap(add(J.lf.a,sub(J.lf.toe,J.lf.a),.5),J.af.h,B):"");
+    if(h==="trx"||h==="rope") mid=fade(strap(p.anchor,J.af.h,B))+strap(p.anchor,J.an.h,B)+(h==="trx"?pl([add(J.an.h,[0,-5]),add(J.an.h,[0,5])],"fg-eqs"):"");
+    const trunk=J.fv?pl([add(J.S,[-17,0]),add(J.S,[17,0])],`fg-limb ${n}`)+pl([add(J.H,[-9,0]),add(J.H,[9,0])],`fg-limb ${n}`):"";
+    const s=back+glow+pl(af,`fg-limb ${fr}`)+pl(lf,`fg-limb ${fr}`)+pl([J.H,J.S],`fg-torso ${n}`)+trunk+pl([J.S,J.Hd],`fg-limb ${n}`)+circ(J.Hd,L.hr,`fg-head ${n}`)+mid+pl(ln,`fg-limb ${n}`)+pl(an,`fg-limb ${n}`)+front;
     return ghost?`<g class="fg-ghost">${s}</g>`:s;
   }
   // A smooth curve through the points (Catmull-Rom), with a head at the end.
@@ -253,6 +290,22 @@ const FIG=(()=>{
         s+=pl([[x,0],[x,top]],"fg-eqs")+pl([[x-20,0],[x+20,0]],"fg-eqs")+pl([[x,hook-3],[x-11,hook-3],[x-11,hook+5]],"fg-eqs")+pl([[x-26,pin],[x+12,pin]],"fg-eqs")}
       else if(it.bar){const b=it.bar;B.pt(add(b,[-10,20]));B.pt(add(b,[10,-5]));s+=pl([b,add(b,[0,18])],"fg-eqs")+pl([add(b,[-10,18]),add(b,[10,18])],"fg-eqs")+circ(b,4.5,"fg-eqf")}
       else if(it.label){const [x,y,t]=it.label;B.pt([x,y]);B.txt.push({x,y,t})}
+      else if(it.wall){const [x,side=-1]=it.wall;B.pt([x+side*8,0]);B.pt([x,200]);s+=pl([[x,0],[x,200]],"fg-eqs")+[20,60,100,140,180].map(y=>pl([[x,y],[x+side*7,y-7]],"fg-eqs fg-thin")).join("")}
+      else if(it.bench){const [x,w,h]=it.bench;B.pt([x,0]);B.pt([x+w,h]);s+=`<rect class="fg-eq" x="${x}" y="${h-7}" width="${w}" height="7" rx="2"/>`+pl([[x+6,0],[x+6,h-7]],"fg-eqs")+pl([[x+w-6,0],[x+w-6,h-7]],"fg-eqs")}
+      else if(it.bosu){const [x,flat]=it.bosu;B.pt([x-31,0]);B.pt([x+31,21]);
+        s+=flat?`<path class="fg-eq" d="M${x-30},17 A30,17 0 0 1 ${x+30},17 Z"/><rect class="fg-eq" x="${x-31}" y="17" width="62" height="4" rx="1.5"/>`:`<path class="fg-eq" d="M${x-30},0 A30,20 0 0 0 ${x+30},0 Z"/>`}
+      else if(it.ball){const [x,y,r]=it.ball;s+=plate([x,y],r,B).replace(/<circle class="fg-eqf"[^>]*>/,"")}
+      else if(it.sled){const [x,hh=34]=it.sled;B.pt([x-26,0]);B.pt([x+26,hh]);s+=`<polygon class="fg-eq" points="${x-26},0 ${x+26},0 ${x+20},16 ${x-20},16"/>`+pl([[x,16],[x,hh]],"fg-eqs")+(hh>40?pl([[x-10,hh],[x,hh]],"fg-eqs"):"")+plate([x,25],9,B)}
+      else if(it.sb) s+=sandbag(it.sb,B);
+      else if(it.medb){B.pt(it.medb,12);s+=circ(it.medb,12,"fg-eq")}
+      else if(it.tire){const [px,a=0,w=110,h=26]=it.tire,ro=v=>[px+v[0]*Math.cos(rad(a))+v[1]*Math.sin(rad(a)),-v[0]*Math.sin(rad(a))+v[1]*Math.cos(rad(a))],c=[[-w,0],[0,0],[0,h],[-w,h]].map(ro);
+        c.forEach(q=>B.pt(q));s+=`<polygon class="fg-eq fg-tire" points="${c.map(P).join(" ")}"/>`+pl([ro([-w+8,h/2]),ro([-8,h/2])],"fg-eqs fg-thin")}
+      else if(it.ghd){const [x,rx=92]=it.ghd;B.pt([x-rx-8,0]);B.pt([x+20,114]);
+        s+=pl([[x,0],[x,82]],"fg-eqs")+pl([[x-rx,0],[x-rx,86]],"fg-eqs")+pl([[x-rx,40],[x,40]],"fg-eqs")+pl([[x-30,0],[x+20,0]],"fg-eqs")+`<rect class="fg-eq" x="${x-14}" y="82" width="30" height="16" rx="8"/>`+circ([x-rx,92],6,"fg-eq")+circ([x-rx,108],6,"fg-eq")}
+      else if(it.bbl) s+=barLong(it.bbl,B);
+      else if(it.line){it.line.forEach(q=>B.pt(q));s+=pl(it.line,"fg-strap")}
+      else if(it.slab){const [x,y,l,a=0]=it.slab;s+=edge([x,y],a,l,B)}
+      else if(it.anchor){const a=it.anchor;B.pt(add(a,[-8,-4]));B.pt(add(a,[8,8]));s+=pl([add(a,[-8,8]),add(a,[8,8])],"fg-eqs")+pl([a,add(a,[0,8])],"fg-eqs")}
       // top view: parallettes [x,y,angle], square boxes [x,y,size], and "me" (a person seen from above)
       else if(it.pb){const [x,y,a]=it.pb,v=[Math.cos(rad(a)),Math.sin(rad(a))],e1=add([x,y],v,-17),e2=add([x,y],v,17);B.pt(e1,5);B.pt(e2,5);
         s+=pl([e1,e2],"fg-eqs")+[e1,e2].map(e=>pl([add(e,perp(v),5),add(e,perp(v),-5)],"fg-eqs")).join("")}

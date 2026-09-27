@@ -147,7 +147,7 @@ The validator also makes sure every main slot (`plyoL`, `squat`, `hinge`, `lunge
 
 ## Movement drawings
 
-Exercises can have simple drawings: side-view stick figures with equipment and arrows, or a view from above for obstacle courses. Each drawing illustrates one or more steps, usually 2 to 4 per exercise. They're stored in the database as small JSON descriptions (tables `figure_pose` and `exercise_figure`, see [`docs/database.md`](docs/database.md)) and drawn as SVG by `app.js`, so they cost almost nothing in size and follow the light and dark themes. They appear when you expand an exercise (and in the follow-along mode's instructions), captioned with the steps they show, and as a strip of small drawings on the printout. So far only a handful of exercises have them.
+Exercises can have simple drawings: side-view stick figures with equipment and arrows, or a view from above for obstacle courses. Each drawing illustrates one or more steps, usually 2 to 4 per exercise. They're stored in the database as small JSON descriptions (tables `figure_pose` and `exercise_figure`, see [`docs/database.md`](docs/database.md)) and drawn as SVG by `app.js`, so they cost almost nothing in size and follow the light and dark themes. They appear when you expand an exercise (and in the follow-along mode's instructions), captioned with the steps they show, and as a strip of small drawings on the printout. Every exercise has them, usually 2 to 4 per exercise.
 
 To add or change drawings, write a JSON file and load it:
 
