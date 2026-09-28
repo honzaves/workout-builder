@@ -17,3 +17,8 @@
 - strict through to rings
 - ring upside down pull-up / or dip ?
 - ring upside down straight hold
+- trx pelican push ups (needs bench or box to kneel on)
+- buddy: While in plank, buddy throws balance ball at you
+- sideways tire flip: Start standing diagonally behind a tire, reach with opposite arm, lift and flip to the side, repeat with other arm
+- buddy: holding medicinebal in outstretched arms while buddy tries to punch it to the side, up, down
+- 
