@@ -1,10 +1,9 @@
-A new exercise to be added:
+A new exercise to be added (if not already in the database):
 
-bear crawl with dumbells
-The idea is to move the dumbell forward after each step, alternating arms, while in a bear crawl
+rowing machine the creative way: Use the seat (maybe 2 machines needed) to kneel on, for rollouts etc - the unexpected moves!
 
-Add the movevement and any known variations thereof to the database
-Add instructions for the movement
+Add the movements and any known variations thereof to the database
+Add instructions for the movements
 Generate images
 
-Also, generate the image in dist folder for that specific exercise for me to check
+Also, generate the image in dist folder for that specific exercises for me to check

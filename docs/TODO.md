@@ -2,11 +2,10 @@
 - how to run on iphone
 - use existing saved workout to create a new one
 
-- med ball backbend & slam while kneeling
-- banded suitcase carry
-- sphinx pushup
+
+- 
 - diamond pushup
-- rowing machine: Used to kneel on or for rollouts etc 
+-  
 - echo bike
 - one arm on bosu in plank, other arm circling the bosu with kettlebell 
 - yin firelog
@@ -22,4 +21,4 @@
 - buddy: While in plank, buddy throws balance ball at you
 - sideways tire flip: Start standing diagonally behind a tire, reach with opposite arm, lift and flip to the side, repeat with other arm
 - buddy: holding medicinebal in outstretched arms while buddy tries to punch it to the side, up, down
-- 
+- buddy: plank on balance ball, buddy tries to kick the ball away (gently)
