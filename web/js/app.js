@@ -199,7 +199,7 @@ function equipList(w){
    vest, band (feet to hands), trx / rope (anchor to hands), lm (landmine; needs anchor), bbl (bar seen lengthwise, plates edge-on),
    hammer (sledgehammer along the forearm), jr (jump rope).
    Scene items (scene.items; one kind per item): fig (pose name or {pose,x,y,...overrides}; x/y shift everything, overrides included; +ghost),
-   kb [x,y], db [x,y] (dumbbell lying on the floor, centre at x,y; y=8 rests it on the floor), plate [x,y] (+r), box [x,w,h], bench [x,w,h], rack {x,top,hook,pin}, bar [x,y] (pull-up bar), wall [x,side], bosu [x,flatSideUp],
+   rower [rearX,seatX,dir] (rowing machine: rail from rearX, flywheel 200 away in direction dir, seat top at y=28), kb [x,y], db [x,y] (dumbbell lying on the floor, centre at x,y; y=8 rests it on the floor), plate [x,y] (+r), box [x,w,h], bench [x,w,h], rack {x,top,hook,pin}, bar [x,y] (pull-up bar), wall [x,side], bosu [x,flatSideUp],
    ball [x,y,r], sled [x,handleHeight], tire [x,angle,w,h], ghd [x,rollerDist], slab [x,y,len,angle] (plate or towel edge-on), sb [x,y], medb [x,y],
    bbl [x,y] (bar lengthwise), anchor [x,y], line [[x,y],...] (strap/band/rope), guide [[x,y],...] (dashed), arrow [[x,y],...] (+dash/faint),
    swap [x,y], label [x,y,text]. Top view (scene.top): pb [x,y,angle] (parallette), sq [x,y,size] (box), me [x,y] (person). */
@@ -303,6 +303,8 @@ const FIG=(()=>{
       else if(it.sled){const [x,hh=34]=it.sled;B.pt([x-26,0]);B.pt([x+26,hh]);s+=`<polygon class="fg-eq" points="${x-26},0 ${x+26},0 ${x+20},16 ${x-20},16"/>`+pl([[x,16],[x,hh]],"fg-eqs")+(hh>40?pl([[x-10,hh],[x,hh]],"fg-eqs"):"")+plate([x,25],9,B)}
       else if(it.sb) s+=sandbag(it.sb,B);
       else if(it.db) s+=db(it.db,[1,0],B);
+      else if(it.rower){const [x,sx,d=1]=it.rower,f=x+d*200;B.pt([x-4,0]);B.pt([f+d*40,96]);
+        s+=pl([[x,0],[x,16],[f,16]],"fg-eqs")+`<rect class="fg-eq" x="${Math.min(f,f+d*36)}" y="0" width="36" height="46" rx="10"/>`+circ([f+d*18,26],13,"fg-eqf")+pl([[f,40],[f-d*14,92]],"fg-eqs")+`<rect class="fg-eq" x="${sx-16}" y="18" width="32" height="10" rx="4"/>`}
       else if(it.medb){B.pt(it.medb,12);s+=circ(it.medb,12,"fg-eq")}
       else if(it.tire){const [px,a=0,w=110,h=26]=it.tire,ro=v=>[px+v[0]*Math.cos(rad(a))+v[1]*Math.sin(rad(a)),-v[0]*Math.sin(rad(a))+v[1]*Math.cos(rad(a))],c=[[-w,0],[0,0],[0,h],[-w,h]].map(ro);
         c.forEach(q=>B.pt(q));s+=`<polygon class="fg-eq fg-tire" points="${c.map(P).join(" ")}"/>`+pl([ro([-w+8,h/2]),ro([-8,h/2])],"fg-eqs fg-thin")}
