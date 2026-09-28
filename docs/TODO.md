@@ -10,4 +10,3 @@
 - ring upside down straight hold
 - trx pelican push ups (needs bench or box to kneel on)
 - buddy: holding medicinebal in outstretched arms while buddy tries to punch it to the side, up, down
-- buddy: plank on balance ball, buddy tries to kick the ball away (gently)
