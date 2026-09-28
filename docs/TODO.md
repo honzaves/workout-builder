@@ -1,3 +1,19 @@
 - Option to add new exercise manually
 - how to run on iphone
 - use existing saved workout to create a new one
+- bear crawl with dumbells
+- banded suitcase carry
+- sphinx pushup
+- diamond pushup
+- rowing machine: Used to kneel on or for rollouts etc 
+- echo bike
+- one arm on bosu in plank, other arm circling the bosu with kettlebell 
+- yin firelog
+- yin pigeon
+- yin half butterfly
+- warm up: rubber band pull apart
+- banded muscle up
+- diagonal light sandbag lift (start with sandbag next to you on the ground) with rotation, push sandbag against wall
+- strict through to rings
+- ring upside down pull-up / or dip ?
+- ring upside down straight hold
