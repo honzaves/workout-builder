@@ -31,7 +31,7 @@ POSE_KEYS = {"hip", "t", "hd", "ln", "lf", "an", "af", "hold", "hi", "anchor", "
 LIMB_KEYS = {"to", "bend", "a", "j", "toe", "ft"}
 HOLDS = {"bb", "fr", "bbh", "kb", "kb2", "kbr", "kbr2", "zbb", "zsb", "eq", "bbl", "hammer", "jr", "goblet", "db1", "db2", "sb", "med", "pl", "vest", "band", "trx", "rope", "lm"}
 ITEM_KINDS = {"fig", "kb", "box", "rack", "plate", "bar", "arrow", "swap", "guide", "label", "pb", "sq", "me",
-              "wall", "bench", "bosu", "ball", "sled", "slab", "anchor", "sb", "medb", "tire", "ghd", "line", "bbl"}
+              "wall", "bench", "bosu", "ball", "sled", "slab", "anchor", "sb", "medb", "tire", "ghd", "line", "bbl", "db"}
 ITEM_FLAGS = {"ghost", "dash", "faint", "r"}
 ALLOWED_FIELDS = {"id", "name", "pattern", "also_pattern", "level", "equipment", "reps", "steps",
                   "cue", "avoid", "combo", "slow_to_fast", "partner", "sprint", "secs", "switch_sides", "retired"}

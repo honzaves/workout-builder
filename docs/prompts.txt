@@ -1,0 +1,10 @@
+A new exercise to be added:
+
+bear crawl with dumbells
+The idea is to move the dumbell forward after each step, alternating arms, while in a bear crawl
+
+Add the movevement and any known variations thereof to the database
+Add instructions for the movement
+Generate images
+
+Also, generate the image in dist folder for that specific exercise for me to check

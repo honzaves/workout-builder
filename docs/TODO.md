@@ -1,7 +1,8 @@
 - Option to add new exercise manually
 - how to run on iphone
 - use existing saved workout to create a new one
-- bear crawl with dumbells
+
+- med ball backbend & slam while kneeling
 - banded suitcase carry
 - sphinx pushup
 - diamond pushup
