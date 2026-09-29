@@ -1,7 +1,4 @@
-- Option to add new exercise manually
-- how to run on iphone
-- use existing saved workout to create a new one
-
+- Add also swap option to warm up and cool down
 
 - warm up: rubber band pull apart
 - banded muscle up (two bands crossing: left band right foot, right band left foot)
@@ -10,3 +7,17 @@
 - ring upside down straight hold
 - trx pelican push ups (needs bench or box to kneel on)
 - buddy: holding medicinebal in outstretched arms while buddy tries to punch it to the side, up, down
+- banded light kettlebel, kneeling, arm at 90 dgrees pointing up, rotations
+- banded russian twist with kb lift 
+- in bulgarian split, front leg lateral jump overer parallelette
+- new equipment: pvc tube - banded, band on fixed point, either rotations, or, buddy moves the band and let's it snap back
+- sideways medicineball throws with buddy
+- one arm medicineball catch while sitting with legs up, with buddy
+- alternative to TRX + KB row: arm on bench
+
+- swap option to allow category selection, not automated (automated being a choice)
+- show catalogue of movements
+- empty workout template, user to build workout manually
+- Option to add new exercise manually
+- how to run on iphone
+- use existing saved workout to create a new one
