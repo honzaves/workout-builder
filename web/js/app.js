@@ -14,9 +14,12 @@ document.querySelector('[data-key="equip"]').insertAdjacentHTML("beforeend",
   Object.entries(DATA.equipment).map(([k,v])=>`<button data-v="${k}">${v}</button>`).join(""));
 
 /* ---------- Settings ---------- */
-const DEF = {duration:30,level:2,plyo:"some",sprints:"some",combos:"some",grip:"on",partner:"off",course:"one",equip:[]};
+const DEF = {blocks:3,level:2,plyo:"some",sprints:"some",combos:"some",grip:"on",partner:"off",course:"one",equip:[]};
 let S = load("fbw-settings", DEF);
 let W = load("fbw-workout", null);
+// Settings saved before the length was a block count: 20/30/45/60 min meant 2/3/4/5 blocks.
+if(S.duration){S.blocks={20:2,30:3,45:4,60:5}[S.duration]||3;delete S.duration;save("fbw-settings",S)}
+if(W&&W.settings&&!W.settings.blocks){W.settings.blocks=W.blocks.filter(b=>/^Block /.test(b.name)).length||3;delete W.settings.duration}
 if(W){try{const ids=[...W.warm,...W.cool,...W.blocks.flatMap(b=>b.items.map(i=>i.id))];if(!ids.every(id=>BY[id])) W=null;}catch(e){W=null}}
 function load(k,d){try{const v=localStorage.getItem(k);return v?Object.assign(Array.isArray(d)?[]:(d?{...d}:{}),JSON.parse(v)):d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -48,23 +51,23 @@ syncAll();
 // Rest seconds and rounds per block, by level.
 const RESTS=DATA.levels.map(l=>({ex:l.ex,round:l.round,rounds:l.rounds}));
 const LEVEL_NAMES=DATA.levels.map(l=>l.name);
-const BLOCKS={20:2,30:3,45:4,60:5};
-const YIN={20:1,30:2,45:2,60:3}; // yin holds in the cool-down, by workout length
+const YIN={1:1,2:1,3:2,4:2,5:3,6:3}; // yin holds in the cool-down, by number of blocks
 const TEMPL=[
   {slots:["plyoL","squat","push"],jump:true},
   {slots:["hinge","pull","core"],jump:false},
   {slots:["plyoX","lunge","core"],jump:true},
   {slots:["squatOrHinge","push","pull"],jump:false},
-  {slots:["plyoL","lunge","core"],jump:true}
+  {slots:["plyoL","lunge","core"],jump:true},
+  {slots:["squatOrHinge","push","pull"],jump:false}
 ];
 const reqs=x=>x.e?(Array.isArray(x.e)?x.e:[x.e]):[];
 const ok=(x,s)=>!x.rt && (x.l||1)<=s.level && !(x.pt&&s.partner!=="on") && !(x.sp&&s.sprints==="none") && reqs(x).every(r=>r.split("|").some(q=>s.equip.includes(q)));
 // Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it.
-const KIT={20:3,30:4,45:5,60:6}; // most equipment types in one workout, by length
+const KIT={1:2,2:3,3:4,4:5,5:6,6:6}; // most equipment types in one workout, by number of blocks
 // For each requirement the kit doesn't cover yet, the options the user has (one of them gets added).
 const newGear=(x,s,kit)=>reqs(x).map(r=>r.split("|").filter(q=>s.equip.includes(q))).filter(a=>!a.some(q=>kit.have.has(q)));
 function kitOf(ids,s){
-  const kit={have:new Set(),max:KIT[s.duration]||5};
+  const kit={have:new Set(),max:KIT[s.blocks]||5};
   // Single-option requirements first, so "plate|barbell" is covered by a barbell that's needed anyway.
   const need=ids.flatMap(id=>newGear(BY[id],s,kit)).sort((a,b)=>a.length-b.length);
   need.forEach(a=>{if(!a.some(q=>kit.have.has(q))) kit.have.add(a[0])});
@@ -98,12 +101,12 @@ function resolve(slot,s){
 }
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function generate(s){
-  const used=new Set(), blocks=[], kit={have:new Set(),max:KIT[s.duration]||5};
+  const used=new Set(), blocks=[], kit={have:new Set(),max:KIT[s.blocks]||5};
   // Course and grip finisher first: their equipment starts the kit, and the blocks reuse it.
   const oc=[];
   if(s.course&&s.course!=="off") for(let k=0;k<(s.course==="two"?2:1);k++){const id=pick("course",s,used,false,false,kit); if(id) oc.push({id,pat:"course"});}
   const g=s.grip==="on"?[pick("grip",s,used,false,false,kit),pick("grip",s,used,false,false,kit)].filter(Boolean):[];
-  for(let i=0;i<BLOCKS[s.duration];i++){
+  for(let i=0;i<Math.min(s.blocks||3,TEMPL.length);i++){
     const t=TEMPL[i]; let slots=[...t.slots];
     if(!t.jump && s.plyo==="lots") slots.unshift("plyoX");
     const items=[], pats=slots.map(sl=>resolve(sl,s));
@@ -128,7 +131,7 @@ function generate(s){
       const id=pick(pat,s,used,cbSlot===-2||k===cbSlot,k===ptSlot,kit,k===spSlot)||pick("plyoL",s,used,false,false,kit);
       if(id) items.push({id,pat});
     });
-    blocks.push({name:"Block "+"ABCDE"[i],rounds:RESTS[s.level-1].rounds,items});
+    blocks.push({name:"Block "+"ABCDEF"[i],rounds:RESTS[s.level-1].rounds,items});
   }
   if(oc.length) blocks.unshift({name:"Obstacle course",rounds:1,course:true,items:oc});
   if(g.length) blocks.push({name:"Grip finisher",rounds:2,items:g.map(id=>({id,pat:"grip"}))});
@@ -139,7 +142,7 @@ function generate(s){
   const warm=[pulse[0],flow[0],mob[0],mob[1],pulse[1]];
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
   const stretch=role("stretch"),yin=role("yin"),calm=role("calm");
-  const cool=[stretch[0],stretch[1],...yin.slice(0,YIN[s.duration]||2),calm[0]];
+  const cool=[stretch[0],stretch[1],...yin.slice(0,YIN[s.blocks]||2),calm[0]];
   return {settings:{...s,equip:[...s.equip]},warm,cool,blocks};
 }
 const WARM_SECS=40, COOL_SECS=45;
@@ -384,7 +387,7 @@ function render(){
 
   const total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
   let h=`<div class="timebox"><p class="hard"><b>About ${total-wm-cm} min</b> of hard work</p>
-  <p>Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down, so set aside about ${total} minutes in total. The time you pick counts only the hard part.</p></div>
+  <p>Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down, so set aside about ${total} minutes in total.</p></div>
   <div class="strip" aria-hidden="true">${strip}</div>
   <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
   <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
@@ -395,13 +398,13 @@ function render(){
   </section>
   ${evalsHTML()}
   <section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
-  <div class="list">${W.warm.map(id=>row(id,holdLabel(id,WARM_SECS),false)).join("")}</div></section>`;
+  <div class="list">${W.warm.map((id,i)=>row(id,holdLabel(id,WARM_SECS),true,`w-${i}`)).join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
     h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
     <div class="list">${b.items.map((it,ii)=>row(it.id,reps(it.id,lv),true,`${bi}-${ii}`)).join("")}</div></section>`;
   });
   h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
-  <div class="list">${W.cool.map(id=>row(id,holdLabel(id,COOL_SECS),false)).join("")}</div></section>
+  <div class="list">${W.cool.map((id,i)=>row(id,holdLabel(id,COOL_SECS),true,`c-${i}`)).join("")}</div></section>
   <p class="foot">${FOOT}</p>`;
   plan.innerHTML=h; plan.hidden=false;
   document.getElementById("start").onclick=startFollow;
@@ -438,17 +441,27 @@ addEventListener("afterprint",()=>{printW=null; printEl.innerHTML=""; document.b
 plan.addEventListener("click",e=>{
   const b=e.target.closest(".swap"); if(!b) return;
   e.preventDefault(); e.stopPropagation();
-  const [bi,ii]=b.dataset.where.split("-").map(Number);
+  const where=b.dataset.where, ph=where.split("-");
+  const done=()=>{if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
+    save("fbw-workout",W); render(); const nb=plan.querySelector(`.swap[data-where="${where}"]`); if(nb) nb.focus()};
+  const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
+  // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
+  if(ph[0]==="w"||ph[0]==="c"){
+    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], cur=list[i], ss={partner:"off",...W.settings};
+    const roles=ph[0]==="w"?["pulse","flow","mob"]:["stretch","yin","calm"];
+    const pool=rs=>[...new Set(rs.flatMap(r=>DATA.phases[r]||[]))].filter(id=>BY[id]&&!list.includes(id)&&ok(BY[id],ss));
+    let c=pool(roles.filter(r=>(DATA.phases[r]||[]).includes(cur))); if(!c.length) c=pool(roles);
+    if(!c.length) return none();
+    list[i]=c[Math.floor(Math.random()*c.length)]; return done();
+  }
+  const [bi,ii]=ph.map(Number);
   const it=W.blocks[bi].items[ii];
   const used=new Set(W.blocks.flatMap(bl=>bl.items.map(x=>x.id)));
   const ss={combos:"some",partner:"off",...W.settings};
   // Swap within the kit the rest of the workout already uses.
   const kit=kitOf(W.blocks.flatMap((bl,bj)=>bl.items.filter((x,xj)=>bj!==bi||xj!==ii).map(x=>x.id)),ss);
   const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
-  if(id){it.id=id; if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
-    save("fbw-workout",W); render();
-    const nb=plan.querySelector(`.swap[data-where="${bi}-${ii}"]`); if(nb) nb.focus();}
-  else {b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)}
+  if(id){it.id=id; done()} else none();
 });
 function build(){
   W=generate(S); save("fbw-workout",W); render();
@@ -607,7 +620,7 @@ async function loadSaved(){
   try{list=await call("GET","workouts")}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
   savedEl.hidden=false;
   savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${list.length?`${list.length} saved`:"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
-    ${list.length?`<ul class="savedlist">${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.duration} min hard work<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
+    ${list.length?`<ul class="savedlist">${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
       <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
       :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
   document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);

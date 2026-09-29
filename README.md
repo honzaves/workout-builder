@@ -26,6 +26,7 @@ Everything the app shows comes from the SQLite database `db/workouts.db`: exerci
 - **Saved workouts** (below Build workout) lists everything you've saved, newest first. Each can be opened, printed, evaluated or deleted.
 - **Evaluate** records one time you did the workout: the date, how long it really took, whether the length felt right, an overall rating of 1 to 5 stars, a 1-5 score for difficulty, enjoyment, variety, flow and fit to your goals, and a comment. After a follow-along run, the actual time is filled in for you.
 - Evaluations show under the workout when you open it, including how the real time compared with the estimate.
+- Every move has a **Swap** button, warm-up and cool-down included. A warm-up or cool-down move is swapped for another with the same role (a pulse raiser for a pulse raiser, a yin hold for a yin hold).
 - If you swap a move in a saved workout, it becomes a new, unsaved workout; save it under a new name to keep both.
 
 Your saved workouts live in `db/workouts.db`, next to the exercises. The file is tracked by git, so committing it also commits your saved workouts and evaluations; copy it to back them up. The design of the database is described in [`docs/database.md`](docs/database.md).
@@ -173,13 +174,12 @@ The pose keys, coordinates and item types are documented at the top of the `FIG`
 
 The generator is in `web/js/app.js`:
 
-- `TEMPL` sets which patterns go in each block, in order.
-- `BLOCKS` maps workout length to the number of blocks.
+- `TEMPL` sets which patterns go in each block, in order. The length setting at the top is the number of blocks (1-6), and the generator uses the first that many templates. The time shown with the workout is an estimate worked out from its sets and rests.
 - Rest times and rounds per block come from the `level` table (`RESTS` in `app.js`).
 - `pick()` chooses exercises. Its weights prefer moves at your level and moves that use equipment already in the workout's kit.
-- Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it. `KIT` sets the most equipment types per workout by length (3 for 20 min up to 6 for 60 min). Bodyweight moves never count toward it.
+- Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it. `KIT` sets the most equipment types per workout by number of blocks (2 for one block up to 6 for five or six). Bodyweight moves never count toward it.
 - `generate()` picks the obstacle course and grip finisher first (so blocks can reuse their equipment), then the blocks, and places combos and partner moves.
-- The warm-up and cool-down draw from roles in the `exercise_phase_role` table. The warm-up takes one pulse raiser (`pulse`), one full-body flow (`flow`), two mobility drills (`mob`) and a second pulse raiser. The cool-down takes two short stretches (`stretch`), some yin holds (`yin`; how many depends on workout length, set in `YIN`) and one calm finish (`calm`). To use a new warm-up or cool-down move, give it a role: `INSERT INTO exercise_phase_role SELECT e.exercise_id, r.role_id FROM exercise e, phase_role r WHERE e.slug = 'my-move' AND r.code = 'mob';`
+- The warm-up and cool-down draw from roles in the `exercise_phase_role` table. The warm-up takes one pulse raiser (`pulse`), one full-body flow (`flow`), two mobility drills (`mob`) and a second pulse raiser. The cool-down takes two short stretches (`stretch`), some yin holds (`yin`; how many depends on the number of blocks, set in `YIN`) and one calm finish (`calm`). To use a new warm-up or cool-down move, give it a role: `INSERT INTO exercise_phase_role SELECT e.exercise_id, r.role_id FROM exercise e, phase_role r WHERE e.slug = 'my-move' AND r.code = 'mob';`
 
 ## Sharing it
 

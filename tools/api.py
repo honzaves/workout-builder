@@ -116,7 +116,7 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
 
     Expected shape:
       {"name": str, "estimated_seconds": int,
-       "settings": {"duration", "level", "plyo", "sprints", "combos", "course", "grip", "partner", "equip": [codes]},
+       "settings": {"blocks", "level", "plyo", "sprints", "combos", "course", "grip", "partner", "equip": [codes]},
        "blocks": [{"kind", "name", "rounds", "rest_ex", "rest_round",
                    "items": [{"id": slug, "pat": pattern code, "prescription", "hold", "est", "equipment": [codes]}]}]}
     """
@@ -130,10 +130,10 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
     try:
         with con:
             wid = con.execute(
-                """INSERT INTO workout (name, level_id, duration_min, plyo_mode, sprint_mode, combo_mode, course_mode,
+                """INSERT INTO workout (name, level_id, block_count, plyo_mode, sprint_mode, combo_mode, course_mode,
                                         grip_finisher, with_partner, estimated_seconds, generator_version)
                    VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-                (name, s["level"], s["duration"], s["plyo"], s.get("sprints", "some"), s["combos"], s["course"],
+                (name, s["level"], s["blocks"], s["plyo"], s.get("sprints", "some"), s["combos"], s["course"],
                  int(s["grip"] == "on"), int(s["partner"] == "on"), int(w["estimated_seconds"]), GENERATOR_VERSION),
             ).lastrowid
             con.executemany("INSERT INTO workout_offered_equipment VALUES (?,?)",
@@ -164,7 +164,7 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
 
 def list_workouts(con: sqlite3.Connection) -> list[dict]:
     rows = con.execute(
-        """SELECT w.workout_id AS id, w.name, w.created_at, w.level_id AS level, w.duration_min AS duration,
+        """SELECT w.workout_id AS id, w.name, w.created_at, w.level_id AS level, w.block_count AS blocks,
                   w.estimated_seconds, s.sessions, s.avg_stars,
                   (SELECT max(started_at) FROM workout_session x WHERE x.workout_id = w.workout_id) AS last_done
            FROM workout w JOIN v_workout_summary s USING (workout_id)
@@ -182,7 +182,7 @@ def get_workout(con: sqlite3.Connection, workout_id: int) -> dict:
            WHERE o.workout_id = ? ORDER BY e.sort_order""", (workout_id,))]
     out = {"id": w["workout_id"], "name": w["name"], "created_at": w["created_at"],
            "estimated_seconds": w["estimated_seconds"],
-           "settings": {"duration": w["duration_min"], "level": w["level_id"], "plyo": w["plyo_mode"],
+           "settings": {"blocks": w["block_count"], "level": w["level_id"], "plyo": w["plyo_mode"],
                         "sprints": w["sprint_mode"], "combos": w["combo_mode"], "course": w["course_mode"],
                         "grip": "on" if w["grip_finisher"] else "off", "partner": "on" if w["with_partner"] else "off",
                         "equip": equip},

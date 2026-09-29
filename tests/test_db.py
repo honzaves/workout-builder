@@ -39,7 +39,7 @@ def sample_workout(con, name="Tuesday legs"):
     """A small valid workout in the shape the app sends."""
     return {
         "name": name, "estimated_seconds": 1800,
-        "settings": {"duration": 20, "level": 2, "plyo": "some", "sprints": "some", "combos": "some",
+        "settings": {"blocks": 2, "level": 2, "plyo": "some", "sprints": "some", "combos": "some",
                      "course": "off", "grip": "off", "partner": "off", "equip": ["db", "box"]},
         "blocks": [
             {"kind": "warmup", "name": "Warm-up", "rounds": 1,

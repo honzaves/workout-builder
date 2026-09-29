@@ -98,7 +98,7 @@ erDiagram
 |---|---|
 | `workout` | The name you gave it when saving, the settings it was generated with (level, hard-work time, plyo, sprint, combo, course, grip, partner), the **estimated time snapshot**, generator version, favourite flag |
 | `workout_offered_equipment` | The equipment you *offered*: the menu, not what was used |
-| `workout_block` | Warm-up, course, blocks A-E, grip finisher and cool-down, in order, with rounds and rest times |
+| `workout_block` | Warm-up, course, blocks A-F, grip finisher and cool-down, in order, with rounds and rest times |
 | `workout_item` | One exercise in a block, with a **snapshot** of its prescription and time estimate |
 | `workout_item_equipment` | Which option was used ("box", not "bench"). The kit, "What you'll need", is derived from this in `v_workout_kit`, so it's never stored twice |
 | `workout_session` | One attempt: start, finish, active seconds (pauses excluded), completed, and "felt too short / about right / too long" |
@@ -122,7 +122,7 @@ Foreign keys can't express "this must belong to the same workout". Triggers cove
 - `trg_block_time_same_workout`, `trg_item_log_same_workout`: session data must refer to that session's workout.
 - `trg_item_equipment_is_option`: the chosen equipment must be one of the exercise's options.
 
-`CHECK` constraints cover ranges and enums: stars and scores 1-5, durations 20/30/45/60, `finished_at >= started_at`, and so on.
+`CHECK` constraints cover ranges and enums: stars and scores 1-5, block counts 1-6, `finished_at >= started_at`, and so on.
 
 ### Views
 

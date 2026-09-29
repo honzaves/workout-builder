@@ -191,7 +191,7 @@ CREATE TABLE workout (
     created_at         TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
     name               TEXT    NOT NULL CHECK (length(trim(name)) > 0),  -- given by the user when saving
     level_id           INTEGER NOT NULL REFERENCES level (level_id) ON DELETE RESTRICT,
-    duration_min       INTEGER NOT NULL CHECK (duration_min IN (20, 30, 45, 60)),  -- hard-work time chosen
+    block_count        INTEGER NOT NULL CHECK (block_count BETWEEN 1 AND 6),  -- exercise blocks chosen
     plyo_mode          TEXT    NOT NULL CHECK (plyo_mode   IN ('some', 'lots')),
     sprint_mode        TEXT    NOT NULL CHECK (sprint_mode IN ('none', 'some', 'lots')),
     combo_mode         TEXT    NOT NULL CHECK (combo_mode  IN ('none', 'some', 'lots', 'max')),
@@ -211,7 +211,7 @@ CREATE TABLE workout_offered_equipment (
     PRIMARY KEY (workout_id, equipment_id)
 ) STRICT, WITHOUT ROWID;
 
--- Sections in order: warm-up, obstacle course, blocks A-E, grip finisher, cool-down.
+-- Sections in order: warm-up, obstacle course, blocks A-F, grip finisher, cool-down.
 CREATE TABLE workout_block (
     block_id               INTEGER PRIMARY KEY,
     workout_id             INTEGER NOT NULL REFERENCES workout (workout_id) ON DELETE CASCADE,
@@ -378,7 +378,7 @@ GROUP BY b.workout_id, eq.equipment_id;
 
 -- Estimated vs actual time, per session.
 CREATE VIEW v_session_time AS
-SELECT s.session_id, s.workout_id, w.duration_min, w.estimated_seconds, s.active_seconds,
+SELECT s.session_id, s.workout_id, w.block_count, w.estimated_seconds, s.active_seconds,
        s.active_seconds - w.estimated_seconds                          AS delta_seconds,
        round(100.0 * (s.active_seconds - w.estimated_seconds) / w.estimated_seconds, 1) AS delta_pct,
        s.time_feel
@@ -400,7 +400,7 @@ GROUP BY t.session_id, b.block_id;
 
 -- One line per workout: how it went, on average.
 CREATE VIEW v_workout_summary AS
-SELECT w.workout_id, w.name, w.created_at, w.level_id, w.duration_min, w.estimated_seconds,
+SELECT w.workout_id, w.name, w.created_at, w.level_id, w.block_count, w.estimated_seconds,
        count(DISTINCT s.session_id)                                    AS sessions,
        round(avg(r.stars), 2)                                          AS avg_stars,
        round(avg(s.active_seconds), 0)                                 AS avg_actual_seconds,
