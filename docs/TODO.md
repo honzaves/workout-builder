@@ -1,5 +1,27 @@
+- refactor the way to generate workout
+  - Quick n easy: Current 
+  - Mix levels: each block contains 3 exercises of increasing difficulty
+  - Template based: User selects number of blocks, who's training, equipment; the application shows an empty template with:
+    - warm-up block empty, user selects number of movements and which movements
+    - obstacle course (can be removed)
+    - empty actual workout blocks into which user can select exercises, user can select how many exercises go into each block
+    - possibility to add extra obstacle or grip blocks in between "normal" workout blocks, also after the last workout block
+    - empty cooldown block in the very end, empty, user selects exercises and how many cooldown exercises
+  - The exercises selection has to be user friendly, so not a dropdown with 1000 options
+    - Suggestion but open to alternatives
+      - Filtered by category (warm up, obstacle, grip, cooldown)
+      - Then user selects category (core, stability, plyo, sprint, ...), filtered by equipment
+      - Then the list of available exercises
 
-- banded muscle up (two bands crossing: left band right foot, right band left foot)
+- push-up to down dog & broad jump
+- banded (small band connecting wrists) plank side walk
+- banded (small band connecting wrists) bear plan with little hops forward
+- burpee into half squat instead of jump up, followed by broad jump
+- Walking lunge forward with kettlebell swing while going dowen. First one leg, then same number of steps the other leg
+- burpee, but don't jump up, jump to land on knees; from kneeling position, jump to feet (in squat) and then jump up
+- TRX plyo burpee: One leg in TRX, make burpee, jump onto box or bench with the other leg when jumping up
+- bear plank: hold with slamball between knees, rotate knees left / right
+- anchor resistance band chest height, put kettlebell on the band and twist, or stretch arms, move arms, or buddy bounces the kettlebell (keep core straight!!!)
 - strict toes through the rings
 - ring upside down pull-up / or dip ?
 - ring upside down straight hold
@@ -17,3 +39,5 @@
 - how to run on iphone
 - use existing saved workout to create a new one
 - fit the workout to a target time: after generating, trim rounds (keep at least 2 per block), then drop the last strength block (keep at least one) until the estimated hard work fits the chosen time within about 2 minutes. Course and grip finisher stay and count toward the time. The estimate also counts every set as 40 s, which is too short for partner moves done in turns and "each side" moves.
+- language selection
+- more explanation for beginners
