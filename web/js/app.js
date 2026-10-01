@@ -514,7 +514,7 @@ function row(id,meta,swappable,where,extra=""){
   const ex=BY[id], j=isJump(id);
   return `<details class="mv${j?" jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
-    <span class="rfoot"><span class="rtags">${tagsHTML(ex)}</span><span class="racts">${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">${ic("swap")}<span>Swap</span></button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">${ic("choose")}<span>Choose</span></button>`:""}${extra}</span></span>
+    <span class="rfoot"><span class="rtags">${tagsHTML(ex)}</span><span class="racts">${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">${ic("swap")}<span>Swap</span></button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">${ic("choose")}<span>Choose</span></button>`:""}</span>${extra}</span>
     <span class="chev" aria-hidden="true">${ic("chev")}</span></summary>${howHTML(ex)}</details>`;
 }
 // A section heading with a short fact beside it (rounds, number of moves).
@@ -758,12 +758,14 @@ function chooseFor(where){
 // Auto-fill and the picker use the settings panel as it is now (level = auto-fill level, equipment, who's training).
 const PAT_LABEL=Object.fromEntries([...PICK_SECTIONS.main.cats,...PICK_SECTIONS.warm.cats,...PICK_SECTIONS.cool.cats,["course","Obstacle course"],["grip","Grip"]]);
 function tplSync(){W.settings={...W.settings,level:S.level,equip:[...S.equip],partner:S.partner}}
-const tbtn=(act,label,attrs="",aria="")=>`<button type="button" class="tbtn" data-act="${act}" ${attrs}${aria?` aria-label="${aria}"`:""}>${label}</button>`;
+const tbtn=(act,label,attrs="",aria="",cls="")=>`<button type="button" class="tbtn${cls?" "+cls:""}" data-act="${act}" ${attrs}${aria?` aria-label="${aria}"`:""}>${label}</button>`;
 const stepper=(act,attrs,val,label,min,max)=>`<span class="stepper" role="group" aria-label="${label}">${tbtn(act,"−",`${attrs} data-d="-1"${val<=min?" disabled":""}`,`Fewer ${label.toLowerCase()}`)}<b>${val}</b>${tbtn(act,"+",`${attrs} data-d="1"${val>=max?" disabled":""}`,`More ${label.toLowerCase()}`)}</span>`;
+// The template's header card: how full it is, then Fill the rest / Start / New template / Print.
 function tplHead(){
-  const n=emptyCount(W), all=slotsOf(W).length;
-  return `<p class="tstat">${n?`<b>${n} of ${all}</b> slots empty`:"Every slot is filled"}${TPL_NOTE?` · ${TPL_NOTE}`:""}</p>
-  <div class="actions">${n?`<button type="button" data-act="fill">Fill the rest</button>`:""}<button class="go" id="start"${idsOf(W).length?"":" disabled"}>Start workout</button><button id="again">New template</button><button id="print"${idsOf(W).length?"":" disabled"}>Print</button></div>`;
+  const n=emptyCount(W), all=slotsOf(W).length, none=idsOf(W).length?"":" disabled";
+  return `<p class="tstat">${n?`<b>${n} of ${all}</b> slots empty`:"<b>Every slot is filled</b>"}${TPL_NOTE?`<small>${TPL_NOTE}</small>`:""}</p>
+  <div class="meter" aria-hidden="true"><span style="width:${all?Math.round((all-n)/all*100):0}%"></span></div>
+  <div class="actions">${n?`<button type="button" class="fillrest" data-act="fill">${ic("bolt")}Fill the rest</button>`:""}<button class="go" id="start"${none}>${ic("play")}Start workout</button><button id="again">${ic("redo")}New template</button><button id="print"${none}>${ic("print")}Print</button></div>`;
 }
 function slotHTML(x,where,section,ctl){
   const hint=PAT_LABEL[section==="warm"||section==="cool"?x.role:x.pat]||x.pat;
@@ -771,24 +773,25 @@ function slotHTML(x,where,section,ctl){
     const lv=lvOf(x,W), meta=section==="warm"?holdLabel(x.id,WARM_SECS):section==="cool"?holdLabel(x.id,COOL_SECS):`${reps(x.id,lv)} · ${LEVEL_NAMES[lv-1]}`;
     return row(x.id,meta,true,where,ctl);
   }
-  return `<div class="tslot"><span class="nm">Empty<small>${hint}</small></span><button class="choose" data-choose="${where}" aria-label="Choose a move for this ${hint} slot">Choose</button>${tbtn("auto","Auto",`data-where="${where}"`,`Fill this ${hint} slot automatically`)}${ctl}</div>`;
+  return `<div class="tslot"><span class="nm">Empty slot<small>${hint}</small></span><span class="racts"><button class="choose" data-choose="${where}" aria-label="Choose a move for this ${hint} slot">${ic("choose")}<span>Choose</span></button>${tbtn("auto",`${ic("bolt")}<span>Auto</span>`,`data-where="${where}"`,`Fill this ${hint} slot automatically`,"auto")}</span>${ctl}</div>`;
 }
 function tplSections(){
-  const ins=at=>`<div class="tins" role="group" aria-label="Add a block here">${mainCount(W)<MAX_MAIN?tbtn("addblock","+ Block",`data-kind="main" data-at="${at}"`):""}${tbtn("addblock","+ Obstacle course",`data-kind="course" data-at="${at}"`)}${tbtn("addblock","+ Grip block",`data-kind="grip" data-at="${at}"`)}</div>`;
-  const del=wh=>tbtn("del","×",`data-where="${wh}"`,"Remove this slot");
-  const phase=(key,title,note)=>`<section class="sec tsec"><h2>${title}</h2>
-    <div class="tbar"><span>Moves</span>${stepper(key+"count","",W[key].length,"Moves",1,MAX_PHASE)}</div><p class="note">${note}</p>
+  const add=label=>`${ic("plus")}${label}`;
+  const ins=at=>`<div class="tins" role="group" aria-label="Add a block here">${mainCount(W)<MAX_MAIN?tbtn("addblock",add("Block"),`data-kind="main" data-at="${at}"`):""}${tbtn("addblock",add("Obstacle course"),`data-kind="course" data-at="${at}"`)}${tbtn("addblock",add("Grip block"),`data-kind="grip" data-at="${at}"`)}</div>`;
+  const del=wh=>tbtn("del",ic("x"),`data-where="${wh}"`,"Remove this slot","del");
+  const phase=(key,title,note)=>`<section class="sec tsec k-${key}">${secHead(title)}
+    <div class="tbar"><span class="tround"><span>Moves</span>${stepper(key+"count","",W[key].length,"Moves",1,MAX_PHASE)}</span></div><p class="note">${note}</p>
     <div class="list">${W[key].map((x,i)=>slotHTML(x,`${key[0]}-${i}`,key,`<span class="tctl inl">${del(`${key[0]}-${i}`)}</span>`)).join("")}</div></section>`;
   let h=phase("warm","Warm-up","One after another, no rest.")+ins(0);
   W.blocks.forEach((b,bi)=>{
-    const ctl=ii=>`<span class="tctl">${tbtn("up","↑",`data-where="${bi}-${ii}"${ii?"":" disabled"}`,"Move up")}${tbtn("down","↓",`data-where="${bi}-${ii}"${ii<b.items.length-1?"":" disabled"}`,"Move down")}${del(`${bi}-${ii}`)}</span>`;
+    const ctl=ii=>`<span class="tctl">${tbtn("up",ic("up"),`data-where="${bi}-${ii}"${ii?"":" disabled"}`,"Move up")}${tbtn("down",ic("down"),`data-where="${bi}-${ii}"${ii<b.items.length-1?"":" disabled"}`,"Move down")}${del(`${bi}-${ii}`)}</span>`;
     const rest=`<label class="tsel">Rest <select data-act="rest" data-b="${bi}">${RESTS.map((r,i)=>`<option value="${i}"${b.rest&&b.rest.ex===r.ex&&b.rest.round===r.round?" selected":""}>${LEVEL_NAMES[i]}: ${r.ex}s / ${r.round}s</option>`).join("")}</select></label>`;
-    h+=`<section class="sec tsec"><h2>${b.name}</h2>
-      <div class="tbar">${b.kind==="course"?"":`<span>Rounds</span>${stepper("rounds",`data-b="${bi}"`,b.rounds,"Rounds",1,6)}${rest}`}
-        <span class="tmove">${tbtn("bup","↑",`data-b="${bi}"${bi?"":" disabled"}`,`Move ${b.name} up`)}${tbtn("bdown","↓",`data-b="${bi}"${bi<W.blocks.length-1?"":" disabled"}`,`Move ${b.name} down`)}${tbtn("bdel","Remove",`data-b="${bi}"`,`Remove ${b.name}`)}</span></div>
+    h+=`<section class="sec tsec k-${b.kind}">${secHead(b.name)}
+      <div class="tbar">${b.kind==="course"?"":`<span class="tround"><span>Rounds</span>${stepper("rounds",`data-b="${bi}"`,b.rounds,"Rounds",1,6)}</span>${rest}`}
+        <span class="tmove">${tbtn("bup",ic("up"),`data-b="${bi}"${bi?"":" disabled"}`,`Move ${b.name} up`)}${tbtn("bdown",ic("down"),`data-b="${bi}"${bi<W.blocks.length-1?"":" disabled"}`,`Move ${b.name} down`)}${tbtn("bdel",`${ic("trash")}<span>Remove</span>`,`data-b="${bi}"`,`Remove ${b.name}`,"del")}</span></div>
       ${b.kind==="course"?`<p class="note">${COURSE_NOTE}</p>`:""}
       <div class="list">${b.items.length?b.items.map((x,ii)=>slotHTML(x,`${bi}-${ii}`,b.kind,ctl(ii))).join(""):`<p class="note tnone">No moves yet.</p>`}</div>
-      ${tbtn("additem","+ Exercise",`data-b="${bi}"`,`Add a slot to ${b.name}`)}</section>${ins(bi+1)}`;
+      ${tbtn("additem",add("Exercise"),`data-b="${bi}"`,`Add a slot to ${b.name}`,"addrow")}</section>${ins(bi+1)}`;
   });
   return h+phase("cool","Cool-down",COOL_NOTE)+`<p class="foot">${FOOT}</p>`;
 }
@@ -801,7 +804,7 @@ function tplAct(b){
   tplSync();
   if(act==="auto"){
     const sec=ph[0]==="w"?"warm":ph[0]==="c"?"cool":W.blocks[+ph[0]].kind;
-    if(!autoFill(W,list[i],sec)){b.textContent="Nothing fits"; setTimeout(()=>b.textContent="Auto",1500); return}
+    if(!autoFill(W,list[i],sec)){const t=b.querySelector("span"); b.classList.add("says"); t.textContent="Nothing fits"; setTimeout(()=>{t.textContent="Auto"; b.classList.remove("says")},1500); return}
     focus=`.choose[data-choose="${wh}"]`;
   }
   else if(act==="fill"){const m=fillRest(W); TPL_NOTE=m?`${m} ${m===1?"slot":"slots"} found nothing that fits your equipment`:""; focus="#start"}
