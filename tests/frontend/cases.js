@@ -57,13 +57,19 @@
     }
   });
 
-  // With little equipment pick() reuses a move when nothing unused fits, so repeats are only checked with everything selected,
-  // and only in the main blocks: the grip finisher can repeat a move when the kit is full (known issue, see docs/TODO.md).
-  test("no repeated moves in the main blocks with all equipment",()=>{
-    for(let k=0;k<30;k++){
-      const s=S({blocks:1+k%6,level:1+k%4,sprints:k%2?"some":"none",partner:k%3?"off":"on"});
-      const b=mains(F.genQuick(s)).flatMap(bl=>bl.items.map(x=>x.id));
+  // With little equipment pick() reuses a move when nothing unused exists at all, so repeats are checked with everything selected.
+  test("no repeated moves in the blocks with all equipment (course and grip finisher included)",()=>{
+    for(let k=0;k<60;k++){
+      const s=S({blocks:1+k%6,level:1+k%4,sprints:k%2?"some":"none",partner:k%3?"off":"on",course:k%5?"one":"two"});
+      const b=F.blockIds(F.genQuick(s));
       yes(new Set(b).size===b.length,`repeated move with ${JSON.stringify(s)}: ${b}`);
+    }
+  });
+
+  test("grip finisher: two different moves even when the kit is full (1 block, Beginner)",()=>{
+    for(let k=0;k<100;k++){
+      const g=F.genQuick(S({blocks:1,level:1,course:"one",grip:"on"})).blocks.find(b=>b.kind==="grip");
+      yes(g.items.length===2&&g.items[0].id!==g.items[1].id,`grip finisher repeats ${g.items[0].id}`);
     }
   });
 

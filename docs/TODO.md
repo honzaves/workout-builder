@@ -21,4 +21,3 @@
 - use existing saved workout to create a new one
 - language selection
 - more explanation for beginners / level specific texts
-- bug: the grip finisher can pick the same move twice when the equipment kit is full (e.g. 1 block, Beginner: course + sandbag carry fill the kit of 2, so the second grip pick reuses the sandbag carry). Fix in pick(): when only used moves fit the kit, allow one more piece of equipment before repeating a move.

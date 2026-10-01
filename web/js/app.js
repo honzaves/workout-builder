@@ -85,9 +85,11 @@ function kitOf(ids,s){
 function pick(pattern,s,used,pref,prefPt,kit,prefSp,exact){
   let c=LIB.filter(x=>(x.p===pattern||x.p2===pattern)&&ok(x,s)&&!(x.cb&&s.combos==="none")&&(!exact||(x.l||1)===exact));
   if(kit&&c.length){
-    // Stay within the kit's size; if nothing fits, add as little new equipment as possible.
-    const n=c.map(x=>newGear(x,s,kit).length), least=Math.min(...n), room=kit.max-kit.have.size;
-    c=c.filter((x,k)=>n[k]<=Math.max(room,least));
+    // Stay within the kit's size; if nothing fits, add as little new equipment as possible. Moves not used yet come
+    // first: one more piece of equipment beats repeating a move (except for sprints, where a repeat beats none).
+    const fresh=prefSp?[]:c.filter(x=>!used.has(x.id)), base=fresh.length?fresh:c;
+    const n=base.map(x=>newGear(x,s,kit).length), least=Math.min(...n), room=kit.max-kit.have.size;
+    c=base.filter((x,k)=>n[k]<=Math.max(room,least));
   }
   if(prefPt){const pp=c.filter(x=>x.pt&&!used.has(x.id)); if(pp.length){c=pp;pref=false;}}
   // A repeated sprint beats no sprint, so fall back to already-used ones.
