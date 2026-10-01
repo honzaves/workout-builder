@@ -1,6 +1,6 @@
 # Full-body workout builder
 
-A no-dependency web app that builds full-body functional workouts: plyometrics, combos, slow-to-fast contrast work, partner moves, obstacle courses and a grip finisher, all matched to the equipment you have. Every move has step-by-step instructions, and a follow-along mode runs the timers.
+A no-dependency web app that builds full-body functional workouts (generated for you, generated with every block running from level 1 to 4, or put together by you from a template): plyometrics, combos, slow-to-fast contrast work, partner moves, obstacle courses and a grip finisher, all matched to the equipment you have. Every move has step-by-step instructions, and a follow-along mode runs the timers.
 
 The app is plain HTML, CSS and JavaScript. A small Python server (standard library only) serves it and stores the workouts you save in a SQLite database, where you can also evaluate them after training.
 
@@ -33,7 +33,7 @@ A template can be started or printed with empty slots (they're skipped after a w
 ### Saving and evaluating workouts
 
 - **Nothing is saved automatically.** When you like a generated workout, type a name under the Start button and press **Save workout**.
-- **Saved workouts** (below Build workout) lists everything you've saved, newest first. Each can be opened, printed, evaluated or deleted.
+- **Saved workouts** (below the Build / Create button) lists your drafts first, then everything you've saved, newest first. Each can be opened, printed, evaluated or deleted.
 - **Evaluate** records one time you did the workout: the date, how long it really took, whether the length felt right, an overall rating of 1 to 5 stars, a 1-5 score for difficulty, enjoyment, variety, flow and fit to your goals, and a comment. After a follow-along run, the actual time is filled in for you.
 - Evaluations show under the workout when you open it, including how the real time compared with the estimate.
 - Every move has a **Swap** button, warm-up and cool-down included. A warm-up or cool-down move is swapped for another with the same role (a pulse raiser for a pulse raiser, a yin hold for a yin hold).
@@ -192,6 +192,8 @@ The generator is in `web/js/app.js`:
 - `pick()` chooses exercises. Its weights prefer moves at your level and moves that use equipment already in the workout's kit.
 - Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it. `KIT` sets the most equipment types per workout by number of blocks (2 for one block up to 6 for five or six). Bodyweight moves never count toward it.
 - `genQuick()` picks the obstacle course and grip finisher first (so blocks can reuse their equipment), then the blocks, and places combos and partner moves.
+- `genMix()` (Generate, levels 1 to 4) keeps the warm-up, cool-down, course and grip finisher of `genQuick()` and rebuilds each block with four patterns at levels 1-4 (`mixLevels()`, `pickAt()`). `genTemplate()` (Put it together myself) makes the empty template; `autoFill()` fills one slot the way the generator would.
+- `python3 tools/validate.py` also prints notes (not errors) when a block pattern has no bodyweight solo move at some level, which Mix levels then has to work around.
 - The warm-up and cool-down draw from roles in the `exercise_phase_role` table. The warm-up takes one pulse raiser (`pulse`), one full-body flow (`flow`), two mobility drills (`mob`) and a second pulse raiser. The cool-down takes two short stretches (`stretch`), some yin holds (`yin`; how many depends on the number of blocks, set in `YIN`) and one calm finish (`calm`). To use a new warm-up or cool-down move, give it a role: `INSERT INTO exercise_phase_role SELECT e.exercise_id, r.role_id FROM exercise e, phase_role r WHERE e.slug = 'my-move' AND r.code = 'mob';`
 
 ## Sharing it

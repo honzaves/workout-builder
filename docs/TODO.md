@@ -1,18 +1,3 @@
-- refactor the way to generate workout
-  - Quick n easy: Current 
-  - Mix levels: each block contains 3 exercises of increasing difficulty
-  - Template based: User selects number of blocks, who's training, equipment; the application shows an empty template with:
-    - warm-up block empty, user selects number of movements and which movements
-    - obstacle course (can be removed)
-    - empty actual workout blocks into which user can select exercises, user can select how many exercises go into each block
-    - possibility to add extra obstacle or grip blocks in between "normal" workout blocks, also after the last workout block
-    - empty cooldown block in the very end, empty, user selects exercises and how many cooldown exercises
-  - The exercises selection has to be user friendly, so not a dropdown with 1000 options
-    - Suggestion but open to alternatives
-      - Filtered by category (warm up, obstacle, grip, cooldown)
-      - Then user selects category (core, stability, plyo, sprint, ...), filtered by equipment
-      - Then the list of available exercises
-
 - push-up to down dog & broad jump
 - banded (small band connecting wrists) plank side walk
 - banded (small band connecting wrists) bear plan with little hops forward
@@ -30,10 +15,10 @@
 - one arm medicineball catch while sitting with legs up, with buddy
 
 
-- swap option in workout to allow category selection, not automated (automated being a choice)
-- show catalogue of movements
+- show catalogue of movements (the Choose list can already browse, but only from a slot in a workout)
 - Option to add new exercise manually
 - how to run on iphone
 - use existing saved workout to create a new one
 - language selection
-- more explanation for beginners / level specific texts- bug: the grip finisher can pick the same move twice when the equipment kit is full (e.g. 1 block, Beginner: course + sandbag carry fill the kit of 2, so the second grip pick reuses the sandbag carry). Fix in pick(): when only used moves fit the kit, allow one more piece of equipment before repeating a move.
+- more explanation for beginners / level specific texts
+- bug: the grip finisher can pick the same move twice when the equipment kit is full (e.g. 1 block, Beginner: course + sandbag carry fill the kit of 2, so the second grip pick reuses the sandbag carry). Fix in pick(): when only used moves fit the kit, allow one more piece of equipment before repeating a move.

@@ -40,7 +40,7 @@ erDiagram
 | `equipment`, `equipment_category` | 24 items in 4 groups | Categories give the settings screen headings |
 | `setup_item` + `exercise_setup_item` | "Clear 15 m lane", "Mat", ... | 48 distinct items linked 246 times, instead of repeated text |
 | `level` | Beginner to Beast, **with rest times and rounds** | These were constants in `app.js` (`RESTS`); they belong to the level |
-| `phase_role` + `exercise_phase_role` | Warm-up and cool-down roles: pulse, flow, mobility, stretch, yin, calm | Replaces the hardcoded id lists in `generate()` |
+| `phase_role` + `exercise_phase_role` | Warm-up and cool-down roles: pulse, flow, mobility, stretch, yin, calm | Replaces the hardcoded id lists in the generator (`genQuick()` in `app.js`) |
 | `figure_pose` | Named, reusable poses for the movement drawings ("stand", "plank-top", ...), as JSON | Most drawings only name a pose, so shared positions are written once |
 | `exercise_figure` | The 2-4 key drawings of an exercise, each covering a run of steps (`first_step`..`last_step`), with the scene as JSON | See "Movement drawings" below |
 

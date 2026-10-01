@@ -1,6 +1,6 @@
 # Design: three ways to build a workout
 
-Status: **draft for review**. Implements the "refactor the way to generate workout" item in `docs/TODO.md`.
+Status: **implemented** on the `workout-modes` branch in five phases (2026-10-01); deviations from this design are marked **As built**. Implemented the "refactor the way to generate workout" item that was in `docs/TODO.md`.
 Sections marked **Assumption** are decisions I made where the requirements are silent; confirm or change them before implementation starts.
 
 ## 1. Goal
@@ -75,6 +75,8 @@ A segmented control at the top: **Quick · Mix levels · Template**. What each m
 | Grip finisher | yes | yes | yes (whether the template starts with one) |
 | Who's training, Equipment | yes | yes | yes (filters the picker and auto-fill) |
 | Main button | Build workout | Build workout | **Create template** |
+
+**As built:** the mode buttons read *Generate it*, *Generate, levels 1 to 4* and *Put it together myself*.
 
 ### 4.2 Template editor
 
