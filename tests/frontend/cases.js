@@ -166,6 +166,99 @@
     eq([stored.v,stored.mode],[2,"quick"]);
   });
 
+  /* ---------- Exercise picker ---------- */
+  const st=(o={})=>({section:"main",cat:null,tags:[],lv:null,q:"",settings:S(),...o});
+
+  test("pickPool: each section lists only its own moves",()=>{
+    const warm=F.pickPool(st({section:"warm",cat:"pulse"}));
+    yes(warm.length&&warm.every(id=>F.DATA.phases.pulse.includes(id)),"warm-up pulse");
+    const cool=F.pickPool(st({section:"cool"}));
+    yes(cool.length&&cool.every(id=>F.COOL_ROLES.some(r=>F.DATA.phases[r].includes(id))),"cool-down, all roles");
+    ["course","grip"].forEach(sec=>{const ids=F.pickPool(st({section:sec})); yes(ids.length&&ids.every(id=>F.BY[id].p===sec),sec)});
+    const push=F.pickPool(st({cat:"push"}));
+    yes(push.length&&push.every(id=>F.BY[id].p==="push"||F.BY[id].p2==="push"),"push");
+    const main=F.pickPool(st());
+    const MAIN=["plyoL","plyoU","squat","hinge","lunge","push","pull","core"];
+    yes(main.every(id=>MAIN.includes(F.BY[id].p)||MAIN.includes(F.BY[id].p2)),"main lists moves with a block pattern (main or also_pattern)");
+    yes(main.every(id=>!F.BY[id].rt),"no retired moves");
+  });
+
+  test("pickPool: equipment, partner, level and tag filters",()=>{
+    const bw=F.pickPool(st({settings:S({equip:[]})}));
+    yes(bw.length&&bw.every(id=>!(F.BY[id].e||[]).length),"bodyweight only");
+    yes(F.pickPool(st()).every(id=>!F.BY[id].pt),"no partner moves when training alone");
+    yes(F.pickPool(st({settings:S({partner:"on"}),tags:["pt"]})).length>0,"partner moves with a partner");
+    const l1=F.pickPool(st({lv:1}));
+    yes(l1.length&&l1.every(id=>(F.BY[id].l||1)===1),"level 1");
+    yes(F.pickPool(st({lv:4})).length>l1.length,"level 4 includes lower levels");
+    const sp=F.pickPool(st({tags:["sp","cb"]}));
+    yes(sp.every(id=>F.BY[id].sp&&F.BY[id].cb),"tags combine");
+    eq(F.pickPool(st({settings:S({sprints:"none"}),tags:["sp"]})),[],"sprints switched off");
+  });
+
+  test("pickPool: search finds names first, then steps, across all categories",()=>{
+    const ids=F.pickPool(st({cat:"squat",q:"lizard"}));
+    eq(ids[0],"lizard-crawl","name match first, outside the selected category");
+    yes(ids.every(id=>F.BY[id].n.toLowerCase().includes("lizard")||F.BY[id].s.some(t=>t.toLowerCase().includes("lizard"))),"matches");
+    const nm=ids.findIndex(id=>!F.BY[id].n.toLowerCase().includes("lizard"));
+    yes(nm<0||ids.slice(nm).every(id=>!F.BY[id].n.toLowerCase().includes("lizard")),"name matches before step matches");
+  });
+
+  const dlg=document.getElementById("pickDlg");
+  test("Choose on a block move: chips, detail, level and Use this",()=>{
+    const w=F.genQuick(S({course:"off",grip:"off",blocks:1,level:2}));
+    F.W=w; F.render();
+    const it=w.blocks[0].items[1];
+    document.querySelector('.choose[data-choose="0-1"]').click();
+    yes(dlg.open,"picker open");
+    yes(dlg.querySelector(`[data-cat="${it.pat}"]`).getAttribute("aria-pressed")==="true","slot pattern preselected");
+    yes(dlg.querySelector('[data-lv="2"]').getAttribute("aria-pressed")==="true","workout level preselected");
+    const rows=dlg.querySelectorAll(".prow");
+    yes(rows.length>0&&rows.length<=40,`first page only (${rows.length})`);
+    // choose a level-2 move that also has level-4 reps, at level 4
+    const target=F.pickPool(st({cat:it.pat,lv:2})).find(id=>id!==it.id&&F.BY[id].r[3]&&F.BY[id].r[1]!==F.BY[id].r[3]);
+    yes(target,"a move with level-4 reps");
+    dlg.querySelector("#pQ").value=F.BY[target].n; dlg.querySelector("#pQ").dispatchEvent(new Event("input"));
+    dlg.querySelector(`.prow[data-id="${target}"]`).click();
+    yes(dlg.querySelector(".pdetail"),"detail view");
+    yes(dlg.querySelector('[data-plv="2"]').getAttribute("aria-pressed")==="true","level defaults to the workout level");
+    dlg.querySelector('[data-plv="4"]').click();
+    dlg.querySelector("#pUse").click();
+    yes(!dlg.open,"picker closed");
+    eq([F.W.blocks[0].items[1].id,F.W.blocks[0].items[1].lv],[target,4],"slot updated with the level");
+    eq(F.sequence(F.W).find(x=>x.id===target).reps,F.BY[target].r[3],"level-4 reps in the sequence");
+    yes(document.querySelector('.choose[data-choose="0-1"]'),"row redrawn");
+  });
+
+  test("Choose on a warm-up move keeps the slot's role",()=>{
+    const w=F.genQuick(S({course:"off",grip:"off",blocks:1}));
+    F.W=w; F.render();
+    document.querySelector('.choose[data-choose="w-1"]').click();
+    yes(dlg.querySelector('[data-cat="flow"]').getAttribute("aria-pressed")==="true","flow preselected");
+    yes(!dlg.querySelector("[data-lv]"),"no level chips for warm-up moves");
+    const other=[...dlg.querySelectorAll(".prow")].map(b=>b.dataset.id).find(id=>id!==w.warm[1].id);
+    dlg.querySelector(`.prow[data-id="${other}"]`).click();
+    yes(!dlg.querySelector("[data-plv]"),"no level buttons in the detail");
+    dlg.querySelector("#pUse").click();
+    eq(F.W.warm[1],{id:other,role:"flow"});
+  });
+
+  test("picker: Show more, chips toggle off, close without changes",()=>{
+    const w=F.genQuick(S({course:"off",grip:"off",blocks:1}));
+    F.W=w; F.render();
+    const before=JSON.stringify(F.W);
+    document.querySelector('.choose[data-choose="0-0"]').click();
+    dlg.querySelector('[data-lv="2"]').click(); // level chip off: all levels
+    const cat=dlg.querySelector('#pChips [data-cat][aria-pressed="true"]'); if(cat) cat.click(); // category off: all patterns
+    const total=F.pickPool(st());
+    yes(dlg.querySelector(".pcount").textContent.startsWith(String(total.length)),"count shows the whole main section");
+    dlg.querySelector("#pMore").click();
+    eq(dlg.querySelectorAll(".prow").length,80,"second page appended");
+    dlg.querySelector("#pClose").click();
+    yes(!dlg.open,"closed");
+    eq(JSON.stringify(F.W),before,"workout unchanged");
+  });
+
   const pre=document.createElement("pre"); pre.id="fbw-results";
   pre.textContent=JSON.stringify({results,extra});
   document.body.appendChild(pre);

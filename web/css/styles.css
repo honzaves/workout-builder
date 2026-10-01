@@ -187,6 +187,36 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .ends{display:flex;justify-content:space-between;gap:12px;margin-top:4px}
 .ends small{font-size:13px;color:var(--muted)}
 .dlg .actions{margin:16px 0 0}
+/* exercise picker: a bottom sheet, full screen on phones */
+.sheet{border:0;padding:0;margin:auto auto 0;width:min(640px,100%);max-width:100%;height:min(88vh,800px);max-height:100%;border-radius:18px 18px 0 0;background:var(--bg);color:var(--ink);overflow:hidden}
+.sheet::backdrop{background:rgba(10,14,18,.55)}
+@media (max-width:640px){.sheet{height:100%;border-radius:0}}
+.pwrap{display:flex;flex-direction:column;height:100%}
+.phead{display:flex;align-items:center;gap:10px;padding:14px 12px 6px 16px}
+.phead h2{flex:1;margin:0;font-size:28px;line-height:1.05}
+.pfilters{display:grid;gap:8px;padding:0 16px 12px;border-bottom:1px solid var(--line)}
+.psearch{width:100%;font:inherit;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+#pChips{display:grid;gap:6px}
+#pChips .seg button{padding:6px 12px;font-size:14px}
+.pbody{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:10px 16px 28px}
+.pcount{font-size:14px;color:var(--muted);margin:0 0 8px}
+.plist{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.plist li{border-top:1px solid var(--line)}
+.plist li:first-child{border-top:0}
+.prow{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:8px 12px;border:0;background:transparent;text-align:left}
+.pthumb{flex:none;display:flex;align-items:center;justify-content:center;width:64px;height:56px;border-radius:8px;background:var(--bg);overflow:hidden}
+.pthumb .fg{max-height:52px}
+.prow .nm small{font-size:14px}
+.pinuse{color:var(--strength);font-weight:600}
+.pmore{display:block;margin:12px auto 0;padding:10px 16px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);font-weight:600}
+.pdetail h3{font-size:30px;line-height:1.05;margin:10px 0 4px}
+.ptags{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px}
+.ptags small{color:var(--muted);font-size:14px}
+.plab{font-weight:600;font-size:15px;margin:12px 0 6px}
+.plevels button{display:flex;flex-direction:column;align-items:flex-start;border-radius:12px;line-height:1.25}
+.plevels button small{font-size:13px;font-weight:400;opacity:.8}
+.puse{display:block;width:100%;margin-top:16px;padding:14px;border:0;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;font-size:17px}
+.choose{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 9px;font-size:13px;color:var(--muted)}
 .evalnow{margin-top:8px;padding:14px 18px;border-radius:12px;border:0;background:var(--strength);color:#fff;font-weight:600;font-size:17px}
 
 /* Movement drawings (FIG in app.js). Figure: --ink near side, --fig-far far side, --strength partner. */

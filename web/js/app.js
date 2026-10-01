@@ -400,7 +400,7 @@ function row(id,meta,swappable,where){
   return `<details class="${j?"jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
     ${tagsHTML(ex)}
-    ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button>`:""}
+    ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">Choose</button>`:""}
     <span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
 }
 function render(){
@@ -468,12 +468,18 @@ function printWorkout(w){printW=w; window.print()}
 addEventListener("beforeprint",()=>{const w=printW||W; printEl.innerHTML=w?printHTML(w):""; document.body.classList.toggle("printing",!!w)});
 addEventListener("afterprint",()=>{printW=null; printEl.innerHTML=""; document.body.classList.remove("printing")});
 
+// After a move is replaced: a saved workout becomes an unsaved copy, then store, redraw and keep focus on the button used.
+function changed(sel){
+  if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
+  save("fbw-workout",W); render(); const nb=plan.querySelector(sel); if(nb) nb.focus();
+}
 plan.addEventListener("click",e=>{
+  const c=e.target.closest(".choose");
+  if(c){e.preventDefault(); e.stopPropagation(); return chooseFor(c.dataset.choose)}
   const b=e.target.closest(".swap"); if(!b) return;
   e.preventDefault(); e.stopPropagation();
   const where=b.dataset.where, ph=where.split("-");
-  const done=()=>{if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
-    save("fbw-workout",W); render(); const nb=plan.querySelector(`.swap[data-where="${where}"]`); if(nb) nb.focus()};
+  const done=()=>changed(`.swap[data-where="${where}"]`);
   const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
   // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
   if(ph[0]==="w"||ph[0]==="c"){
@@ -493,6 +499,122 @@ plan.addEventListener("click",e=>{
   const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
   if(id){it.id=id; done()} else none();
 });
+/* ---------- Exercise picker ---------- */
+// A bottom sheet for choosing a move by hand. The section comes from the slot it was opened for: warm-up and
+// cool-down show their roles, course and grip slots their own moves, block slots the patterns plus tags.
+// The list is always filtered by equipment and who's training; chips narrow it, search looks at names, then steps.
+const PICK_SECTIONS={
+  main:{title:"Choose a move",cats:[["plyoL","Plyo lower"],["plyoU","Plyo upper"],["squat","Squat"],["hinge","Hinge"],["lunge","Lunge"],["push","Push"],["pull","Pull"],["core","Core"]]},
+  warm:{title:"Choose a warm-up move",cats:[["pulse","Pulse"],["flow","Flow"],["mob","Mobility"]]},
+  cool:{title:"Choose a cool-down move",cats:[["stretch","Stretch"],["yin","Yin"],["calm","Calm"]]},
+  course:{title:"Choose an obstacle course",cats:[]},
+  grip:{title:"Choose a grip move",cats:[]}};
+const PICK_TAGS=[["sp","Sprint"],["cb","Combo"],["pt","Partner"]];
+const PICK_PAGE=40;
+const phased=sec=>sec==="warm"||sec==="cool";
+// The ids the picker lists for a state {section, cat, tags, lv, q, settings}, best matches first.
+function pickPool(st){
+  const s={...st.settings,level:4}, cats=PICK_SECTIONS[st.section].cats.map(c=>c[0]), q=(st.q||"").trim().toLowerCase();
+  let c;
+  if(phased(st.section)) c=[...new Set((q||!st.cat?cats:[st.cat]).flatMap(r=>DATA.phases[r]||[]))].map(id=>BY[id]).filter(Boolean);
+  else if(st.section==="main") c=LIB.filter(x=>q||!st.cat?cats.includes(x.p)||cats.includes(x.p2):x.p===st.cat||x.p2===st.cat);
+  else c=LIB.filter(x=>x.p===st.section);
+  c=c.filter(x=>ok(x,s)&&(!st.lv||phased(st.section)||(x.l||1)<=st.lv)&&(st.tags||[]).every(t=>x[t]));
+  if(q){
+    const inName=c.filter(x=>x.n.toLowerCase().includes(q)), inSteps=c.filter(x=>!inName.includes(x)&&x.s.some(t=>t.toLowerCase().includes(q)));
+    c=[...inName,...inSteps];
+  } else c.sort((a,b)=>(a.l||0)-(b.l||0)||a.n.localeCompare(b.n));
+  return c.map(x=>x.id);
+}
+const pickDlg=document.getElementById("pickDlg");
+let PK=null; // picker state while open
+// opts: {section, cat, lv, settings, used (ids already in the workout), onPick(id, lv, cat)}
+function openPicker(opts){
+  PK={tags:[],q:"",shown:PICK_PAGE,detail:null,...opts};
+  pickDlg.innerHTML=`<div class="pwrap"><div class="phead"><h2 id="pickTitle">${PICK_SECTIONS[PK.section].title}</h2><button class="x" id="pClose" aria-label="Close">×</button></div>
+    <div class="pfilters"><input class="psearch" id="pQ" type="search" placeholder="Search names and steps" aria-label="Search" autocomplete="off"><div id="pChips"></div></div>
+    <div class="pbody" id="pBody"></div></div>`;
+  document.getElementById("pClose").onclick=()=>pickDlg.close();
+  document.getElementById("pQ").oninput=e=>{PK.q=e.target.value; PK.shown=PICK_PAGE; PK.detail=null; pickList()};
+  document.getElementById("pBody").onscroll=e=>{const b=e.target; if(!PK.detail&&b.scrollTop+b.clientHeight>b.scrollHeight-300) pickMore()};
+  pickChips(); pickList();
+  if(!pickDlg.open) pickDlg.showModal();
+  document.getElementById("pQ").focus();
+}
+function pickChips(focus){
+  const sec=PICK_SECTIONS[PK.section], chip=(k,v,label,on)=>`<button data-${k}="${v}" aria-pressed="${on}">${label}</button>`;
+  document.getElementById("pChips").innerHTML=
+    (sec.cats.length?`<div class="seg" role="group" aria-label="Category">${sec.cats.map(([v,l])=>chip("cat",v,l,PK.cat===v)).join("")}</div>`:"")+
+    (PK.section==="main"?`<div class="seg" role="group" aria-label="Tags">${PICK_TAGS.map(([v,l])=>chip("tag",v,l,PK.tags.includes(v))).join("")}</div>`:"")+
+    (phased(PK.section)?"":`<div class="seg" role="group" aria-label="Level">${LEVEL_NAMES.map((l,i)=>chip("lv",i+1,l,PK.lv===i+1)).join("")}</div>`);
+  if(focus){const b=pickDlg.querySelector(`#pChips [data-${focus[0]}="${focus[1]}"]`); if(b) b.focus()}
+}
+const pickMeta=x=>[phased(PK.section)?holdLabel(x.id,PK.section==="warm"?WARM_SECS:COOL_SECS):`${LEVEL_NAMES[(x.l||1)-1]}+`,
+  ...reqs(x).map(r=>r.split("|").map(a=>EQ_LABEL[a]||a).join(" or ")),...(reqs(x).length?[]:["bodyweight"])].join(" · ");
+function pickRow(id){
+  const x=BY[id], f=FIG.has(id)?FIG.of(id,64)[0].svg:"";
+  return `<li><button class="prow" data-id="${id}"><span class="pthumb" aria-hidden="true">${f}</span>
+    <span class="nm">${x.n}<small>${pickMeta(x)}${PK.used.has(id)?' · <span class="pinuse">in use</span>':""}</small></span>${tagsHTML(x)}</button></li>`;
+}
+function pickList(){
+  const body=document.getElementById("pBody"), ids=pickPool(PK);
+  PK.ids=ids;
+  body.innerHTML=`<p class="pcount" aria-live="polite">${ids.length} ${ids.length===1?"move":"moves"}${PK.q?` matching “${esc(PK.q)}”`:""}</p>`+
+    (ids.length?`<ul class="plist">${ids.slice(0,PK.shown).map(pickRow).join("")}</ul>`:`<p class="note">Nothing fits. Clear the search or a filter, or select more equipment.</p>`)+
+    (ids.length>PK.shown?`<button class="pmore" id="pMore">Show more (${ids.length-PK.shown} left)</button>`:"");
+  body.scrollTop=0;
+}
+function pickMore(){
+  if(!PK.ids||PK.shown>=PK.ids.length) return;
+  const list=pickDlg.querySelector(".plist"), more=document.getElementById("pMore");
+  list.insertAdjacentHTML("beforeend",PK.ids.slice(PK.shown,PK.shown+PICK_PAGE).map(pickRow).join(""));
+  PK.shown+=PICK_PAGE;
+  if(PK.shown>=PK.ids.length) more.remove(); else more.textContent=`Show more (${PK.ids.length-PK.shown} left)`;
+}
+// The chosen move: drawings, cue and, for leveled moves, one button per level with its reps.
+function pickDetail(id){
+  const x=BY[id], body=document.getElementById("pBody");
+  const lvs=phased(PK.section)?[]:x.r.map((r,i)=>r?i+1:0).filter(Boolean);
+  PK.detail={id,lv:lvs.includes(PK.lv)?PK.lv:lvs.find(l=>l>=(PK.lv||1))||lvs[0]};
+  body.innerHTML=`<div class="pdetail"><button class="linkbtn" id="pBack">← All moves</button>
+    <h3>${x.n}</h3><p class="ptags">${tagsHTML(x)}<small>${pickMeta(x)}</small></p>
+    ${figsHTML(id,150)}<p><b>Cue:</b> ${x.c}</p>
+    ${lvs.length?`<p class="plab" id="pLvLab">Level</p><div class="seg plevels" role="group" aria-labelledby="pLvLab">${lvs.map(l=>`<button data-plv="${l}" aria-pressed="${l===PK.detail.lv}">${LEVEL_NAMES[l-1]}<small>${esc(x.r[l-1])}</small></button>`).join("")}</div>`:""}
+    <button class="puse" id="pUse">Use this</button></div>`;
+  body.scrollTop=0;
+  document.getElementById("pBack").onclick=()=>{PK.detail=null; pickList()};
+  document.getElementById("pUse").onclick=()=>{const {id,lv}=PK.detail, cb=PK.onPick, cat=PK.cat; pickDlg.close(); cb(id,lv,cat)};
+  document.getElementById("pUse").focus();
+}
+pickDlg.addEventListener("click",e=>{
+  if(e.target===pickDlg) return pickDlg.close(); // a tap on the backdrop
+  const b=e.target.closest("button"); if(!b||!PK) return;
+  if(b.dataset.cat){PK.cat=PK.cat===b.dataset.cat?null:b.dataset.cat; PK.shown=PICK_PAGE; pickChips(["cat",b.dataset.cat]); pickList()}
+  else if(b.dataset.tag){const t=b.dataset.tag; PK.tags=PK.tags.includes(t)?PK.tags.filter(x=>x!==t):[...PK.tags,t]; PK.shown=PICK_PAGE; pickChips(["tag",t]); pickList()}
+  else if(b.dataset.lv){const l=+b.dataset.lv; PK.lv=PK.lv===l?null:l; PK.shown=PICK_PAGE; pickChips(["lv",l]); pickList()}
+  else if(b.dataset.plv){PK.detail.lv=+b.dataset.plv; pickDlg.querySelectorAll("[data-plv]").forEach(x=>x.setAttribute("aria-pressed",x===b))}
+  else if(b.id==="pMore") pickMore();
+  else if(b.dataset.id) pickDetail(b.dataset.id);
+});
+pickDlg.addEventListener("close",()=>{PK=null; pickDlg.innerHTML=""});
+// "Choose" on a plan row: open the picker for that slot and put the chosen move in it.
+function chooseFor(where){
+  const ph=where.split("-"), settings={partner:"off",...W.settings}, used=new Set(idsOf(W)), sel=`.choose[data-choose="${where}"]`;
+  if(ph[0]==="w"||ph[0]==="c"){
+    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], roles=ph[0]==="w"?WARM_ROLES:COOL_ROLES;
+    return openPicker({section:ph[0]==="w"?"warm":"cool",cat:list[i].role,settings,used,
+      onPick:id=>{list[i]={id,role:(DATA.phases[list[i].role]||[]).includes(id)?list[i].role:roleOf(id,roles)}; changed(sel)}});
+  }
+  const [bi,ii]=ph.map(Number), b=W.blocks[bi], it=b.items[ii], section=b.kind==="main"?"main":b.kind;
+  openPicker({section,cat:section==="main"?it.pat:null,lv:lvOf(it,W),settings,used,
+    onPick:(id,lv,cat)=>{
+      const x=BY[id];
+      it.id=id; if(section==="main") it.pat=cat&&(x.p===cat||x.p2===cat)?cat:x.p;
+      if(lv&&lv!==W.settings.level) it.lv=lv; else delete it.lv;
+      changed(sel);
+    }});
+}
+
 function build(){
   W=genQuick(S); save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
@@ -717,4 +839,4 @@ call("GET","workouts").then(()=>{API.on=true; loadSaved(); render()}).catch(()=>
 
 // Internals for the front-end tests (tests/frontend/cases.js); nothing in the app uses this.
 window.FBW={DATA,BY,LIB,RESTS,TEMPL,WARM_ROLES,COOL_ROLES,ok,pick,kitOf,genQuick,upgrade,loadW,lvOf,restOf,filled,idsOf,blockIds,
-  sequence,estimate,equipList,toDB,render,get W(){return W},set W(v){W=v}};
+  sequence,estimate,equipList,toDB,render,pickPool,openPicker,chooseFor,get W(){return W},set W(v){W=v}};

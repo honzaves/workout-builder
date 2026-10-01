@@ -27,6 +27,7 @@ Everything the app shows comes from the SQLite database `db/workouts.db`: exerci
 - **Evaluate** records one time you did the workout: the date, how long it really took, whether the length felt right, an overall rating of 1 to 5 stars, a 1-5 score for difficulty, enjoyment, variety, flow and fit to your goals, and a comment. After a follow-along run, the actual time is filled in for you.
 - Evaluations show under the workout when you open it, including how the real time compared with the estimate.
 - Every move has a **Swap** button, warm-up and cool-down included. A warm-up or cool-down move is swapped for another with the same role (a pulse raiser for a pulse raiser, a yin hold for a yin hold).
+- Next to it, **Choose** opens a list to pick the replacement yourself. It shows only moves your equipment and "who's training" allow, starts on the slot's category (squat, pull, mobility, yin …) and your level, and has category, tag (sprint, combo, partner) and level filters plus a search over names and steps. Tap a move to see its drawings and pick the level you want to do it at: a block move can be done at a different level from the rest of the workout.
 - If you swap a move in a saved workout, it becomes a new, unsaved workout; save it under a new name to keep both.
 
 Your saved workouts live in `db/workouts.db`, next to the exercises. The file is tracked by git, so committing it also commits your saved workouts and evaluations; copy it to back them up. The design of the database is described in [`docs/database.md`](docs/database.md).
@@ -78,7 +79,7 @@ pytest
 
 The tests check the exercises in the database and the validator, that the build produces a working single file from the database, that seeding from the JSON snapshot loads every exercise, that nothing runs on a missing or empty database, that bad drawings are rejected without writing anything, and that saving, listing, evaluating and deleting work through the HTTP API. The database tests run on temporary copies, never on `db/workouts.db`.
 
-`tests/test_frontend.py` also tests the app itself: it runs the cases in `tests/frontend/cases.js` against the built file in headless Chrome (generator rules, the workout format, older stored workouts, the follow-along sequence, rendering, Swap) and saves a generated workout through the API. It is skipped when Chrome or Chromium isn't installed; set `CHROME=/path/to/chrome` to use one that isn't found automatically.
+`tests/test_frontend.py` also tests the app itself: it runs the cases in `tests/frontend/cases.js` against the built file in headless Chrome (generator rules, the workout format, older stored workouts, the follow-along sequence, rendering, Swap, the Choose list) and saves a generated workout through the API. It is skipped when Chrome or Chromium isn't installed; set `CHROME=/path/to/chrome` to use one that isn't found automatically.
 
 ## Project layout
 
