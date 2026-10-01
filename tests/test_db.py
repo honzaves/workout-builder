@@ -4,6 +4,8 @@ Every test runs on its own temporary database seeded from db/seed/exercises.json
 the real db/workouts.db is never touched."""
 import copy
 import json
+import re
+import sqlite3
 import threading
 import urllib.request
 
@@ -99,7 +101,7 @@ def test_save_open_evaluate_and_delete(con):
     wid = api.save_workout(con, sample_workout(con))
     w = api.get_workout(con, wid)
     assert w["name"] == "Tuesday legs"
-    assert w["warm"] == ["jacks"] and w["cool"] == ["child"]
+    assert w["warm"] == [{"id": "jacks", "role": "pulse"}] and w["cool"] == [{"id": "child", "role": "yin"}]
     assert w["settings"]["equip"] == ["db", "box"]
 
     api.add_evaluation(con, wid, {"started_at": "2026-09-27T17:00:00Z", "active_minutes": 34, "completed": True,
@@ -121,6 +123,9 @@ def test_save_open_evaluate_and_delete(con):
     (lambda w: w.update(name="   "), "name"),
     (lambda w: w["blocks"][1]["items"][0].update(id="no-such-move"), "Unknown exercise"),
     (lambda w: w["blocks"][1]["items"][0].update(equipment=["ghd"]), "not an option"),
+    (lambda w: w["blocks"][1]["items"][0].update(id=None), "empty slots"),
+    (lambda w: w.update(mode="freestyle"), "Unknown mode"),
+    (lambda w: w["blocks"][1]["items"][0].update(level=7), "Couldn't save"),
 ])
 def test_save_rejects_bad_workouts(con, change, message):
     w = sample_workout(con)
@@ -128,6 +133,90 @@ def test_save_rejects_bad_workouts(con, change, message):
     with pytest.raises(ValueError, match=message):
         api.save_workout(con, w)
     assert api.list_workouts(con) == []
+
+
+def test_saved_workout_comes_back_as_version_2(con):
+    w = sample_workout(con)
+    w["mode"] = "template"
+    w["blocks"][1]["items"][1]["level"] = 4
+    w["blocks"].insert(1, {"kind": "course", "name": "Obstacle course", "rounds": 1, "rest_ex": 0, "rest_round": 90,
+                           "items": [{"id": "box-jump", "pat": "course", "prescription": "4 runs", "est": 40}]})
+    got = api.get_workout(con, api.save_workout(con, w))
+    assert (got["v"], got["mode"]) == (2, "template")
+    assert [b["kind"] for b in got["blocks"]] == ["course", "main"]
+    assert "rest" not in got["blocks"][0]
+    assert got["blocks"][1]["rest"] == {"ex": 20, "round": 75}
+    assert got["blocks"][1]["items"] == [{"id": "box-jump", "pat": "plyoL"}, {"id": "goblet", "pat": "squat", "lv": 4}]
+    assert api.list_workouts(con)[0]["mode"] == "template"
+
+
+def draft_doc(**change):
+    doc = {"v": 2, "mode": "template", "settings": {"blocks": 1, "level": 2},
+           "warm": [{"id": "jacks", "role": "pulse"}, {"id": None, "role": "mob"}],
+           "cool": [{"id": None, "role": "calm"}],
+           "blocks": [{"kind": "main", "name": "Block A", "rounds": 3, "rest": {"ex": 20, "round": 75},
+                       "items": [{"id": "goblet", "pat": "squat", "lv": 3}, {"id": None, "pat": "push", "lv": None}]}]}
+    doc.update(change)
+    return doc
+
+
+def test_drafts_save_list_open_update_delete(con):
+    did = api.save_draft(con, {"name": " Thursday plan ", "doc": draft_doc()})
+    listed = api.list_drafts(con)
+    assert [(d["id"], d["name"], d["slots"], d["empty"]) for d in listed] == [(did, "Thursday plan", 5, 3)]
+    assert api.get_draft(con, did)["doc"] == draft_doc()
+    full = draft_doc(warm=[{"id": "jacks", "role": "pulse"}], cool=[])
+    full["blocks"][0]["items"] = [{"id": "goblet", "pat": "squat", "lv": 3}]
+    api.update_draft(con, did, {"name": "Thursday", "doc": full})
+    assert (api.list_drafts(con)[0]["name"], api.list_drafts(con)[0]["empty"]) == ("Thursday", 0)
+    api.delete_draft(con, did)
+    assert api.list_drafts(con) == []
+    with pytest.raises(LookupError):
+        api.get_draft(con, did)
+    with pytest.raises(LookupError):
+        api.update_draft(con, did, {"name": "x", "doc": draft_doc()})
+
+
+@pytest.mark.parametrize("draft, message", [
+    ({"name": "", "doc": draft_doc()}, "name"),
+    ({"name": "x", "doc": {"warm": []}}, "version 2"),
+    ({"name": "x", "doc": draft_doc(v=1)}, "version 2"),
+    ({"name": "x", "doc": draft_doc(warm=[{"id": "no-such-move", "role": "pulse"}])}, "Unknown exercise"),
+])
+def test_bad_drafts_are_rejected(con, draft, message):
+    with pytest.raises(ValueError, match=message):
+        api.save_draft(con, draft)
+    assert api.list_drafts(con) == []
+
+
+def test_migration_003_keeps_existing_workouts(tmp_path):
+    """Rebuild the schema as it was before 003, store a workout the old way, then migrate."""
+    old = api.SCHEMA_FILE.read_text(encoding="utf-8")
+    old = re.sub(r",\n    mode +TEXT[^\n]*\n", "\n", old, count=1)
+    old = re.sub(r"\n    level_id +INTEGER REFERENCES level[^\n]*", "", old, count=1)
+    old = re.sub(r"CREATE TABLE workout_draft \(.*?\) STRICT;\n", "", old, count=1, flags=re.S)
+    workout_table = old.split("CREATE TABLE workout (")[1].split(") STRICT")[0]
+    assert "workout_draft" not in old and "\n    mode " not in workout_table and "level_id           INTEGER REFERENCES" not in old
+    db = tmp_path / "old.db"
+    raw = sqlite3.connect(db)
+    raw.executescript(old)
+    raw.close()
+    con = api.connect(db)
+    db_import.sync(con, DATA)
+    with con:
+        wid = con.execute("""INSERT INTO workout (name, level_id, block_count, plyo_mode, sprint_mode, combo_mode,
+                             course_mode, grip_finisher, with_partner, estimated_seconds, generator_version)
+                             VALUES ('Old one', 2, 1, 'some', 'some', 'some', 'off', 0, 0, 600, 'js-1')""").lastrowid
+        bid = con.execute("INSERT INTO workout_block (workout_id, position, kind, name, rounds) VALUES (?, 1, 'main', 'Block A', 3)",
+                          (wid,)).lastrowid
+        con.execute("""INSERT INTO workout_item (block_id, position, exercise_id, slot_pattern_id, prescription, estimated_seconds)
+                       SELECT ?, 1, e.exercise_id, p.pattern_id, '10', 40 FROM exercise e, movement_pattern p
+                       WHERE e.slug = 'goblet' AND p.code = 'squat'""", (bid,))
+    con.executescript((api.ROOT / "db" / "migrations" / "003_workout_modes.sql").read_text(encoding="utf-8"))
+    got = api.get_workout(con, wid)
+    assert (got["mode"], got["blocks"][0]["items"]) == ("quick", [{"id": "goblet", "pat": "squat"}])
+    assert api.save_draft(con, {"name": "after migration", "doc": draft_doc()})
+    assert con.execute("PRAGMA foreign_key_check").fetchall() == []
 
 
 def test_evaluation_rejects_out_of_range_scores(con):
@@ -193,6 +282,15 @@ def test_http_api(tmp_path):
         assert call("POST", "/api/workouts", {"name": ""})[0] == 400
         assert call("GET", "/api/workouts/999")[0] == 404
         assert call("DELETE", f"/api/workouts/{saved['id']}")[0] == 200
+        status, draft = call("POST", "/api/drafts", {"name": "HTTP draft", "doc": draft_doc()})
+        assert status == 201
+        assert call("GET", "/api/drafts")[1][0]["empty"] == 3
+        assert call("PUT", f"/api/drafts/{draft['id']}", {"name": "Renamed", "doc": draft_doc()})[0] == 200
+        assert call("GET", f"/api/drafts/{draft['id']}")[1]["name"] == "Renamed"
+        assert call("PUT", "/api/drafts/999", {"name": "x", "doc": draft_doc()})[0] == 404
+        assert call("POST", "/api/drafts", {"name": "x", "doc": {}})[0] == 400
+        assert call("DELETE", f"/api/drafts/{draft['id']}")[0] == 200
+        assert call("GET", "/api/drafts")[1] == []
     finally:
         httpd.shutdown()
         httpd.server_close()

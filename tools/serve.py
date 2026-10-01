@@ -15,6 +15,11 @@ API:
     GET    /api/workouts/<id>                  one workout, with its evaluations
     DELETE /api/workouts/<id>
     POST   /api/workouts/<id>/evaluations      record a session and how it went -> {"id"}
+    GET    /api/drafts                         unfinished templates, most recently changed first
+    POST   /api/drafts                         {"name", "doc"} -> {"id"}
+    GET    /api/drafts/<id>                    one draft with its document
+    PUT    /api/drafts/<id>                    replace its name and document
+    DELETE /api/drafts/<id>
 """
 from __future__ import annotations
 
@@ -35,6 +40,7 @@ import api  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 WORKOUT = re.compile(r"^/api/workouts/(\d+)$")
 EVALUATIONS = re.compile(r"^/api/workouts/(\d+)/evaluations$")
+DRAFT = re.compile(r"^/api/drafts/(\d+)$")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -77,6 +83,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         return self._json(200, {"deleted": int(m.group(1))})
                 if (m := EVALUATIONS.match(path)) and method == "POST":
                     return self._json(201, {"id": api.add_evaluation(self.con, int(m.group(1)), self._body())})
+                if method == "GET" and path == "/api/drafts":
+                    return self._json(200, api.list_drafts(self.con))
+                if method == "POST" and path == "/api/drafts":
+                    return self._json(201, {"id": api.save_draft(self.con, self._body())})
+                if m := DRAFT.match(path):
+                    did = int(m.group(1))
+                    if method == "GET":
+                        return self._json(200, api.get_draft(self.con, did))
+                    if method == "PUT":
+                        api.update_draft(self.con, did, self._body())
+                        return self._json(200, {"id": did})
+                    if method == "DELETE":
+                        api.delete_draft(self.con, did)
+                        return self._json(200, {"deleted": did})
             self._json(404, {"error": f"No route for {method} {path}"})
         except LookupError as e:
             self._json(404, {"error": str(e)})
@@ -90,6 +110,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         self._api("POST")
+
+    def do_PUT(self) -> None:
+        self._api("PUT")
 
     def do_DELETE(self) -> None:
         self._api("DELETE")

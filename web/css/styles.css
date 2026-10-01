@@ -217,6 +217,33 @@ details[open] .chev{transform:rotate(-135deg);margin-bottom:-2px}
 .plevels button small{font-size:13px;font-weight:400;opacity:.8}
 .puse{display:block;width:100%;margin-top:16px;padding:14px;border:0;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:600;font-size:17px}
 .choose{border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 9px;font-size:13px;color:var(--muted)}
+/* template editor */
+.tstat{font-size:15px;color:var(--muted);margin:0 0 10px}
+.tstat b{color:var(--ink)}
+.tbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:-2px 0 10px;font-size:15px}
+.tmove{display:flex;gap:6px;margin-left:auto}
+.tbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;font-size:14px;min-width:34px;min-height:34px}
+.tbtn:disabled,.actions button:disabled{opacity:.35;cursor:default}
+.stepper{display:inline-flex;align-items:center;gap:6px}
+.stepper b{min-width:1.4em;text-align:center}
+.tsel select{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);margin-left:4px}
+.tsec summary{flex-wrap:wrap}
+.tctl{order:10;flex-basis:100%;display:flex;justify-content:flex-end;gap:6px}
+.tctl .tbtn{padding:2px 8px;min-height:30px}
+.tctl.inl{order:0;flex-basis:auto}
+.tslot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 14px;border-top:1px solid var(--line);background:repeating-linear-gradient(135deg,transparent 0 10px,var(--bg) 10px 20px)}
+.list > .tslot:first-child{border-top:0}
+.tslot .nm{color:var(--muted)}
+.tslot .nm small{text-transform:lowercase}
+.tslot [data-act="auto"]{border-color:var(--strength);color:var(--strength)}
+.tsec > [data-act="additem"]{margin-top:8px}
+.tnone{padding:12px 14px;margin:0}
+.tins{display:flex;flex-wrap:wrap;gap:6px;margin:-8px 0 22px;padding:8px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);justify-content:center}
+.tins .tbtn{background:transparent;color:var(--muted);font-size:13px}
+.saveform div{flex-wrap:wrap}
+.saveform input{flex-basis:12em}
+#saveDraft{background:transparent;color:var(--strength);border:1.5px solid var(--strength)}
+.saveform button:disabled{opacity:.4;cursor:default}
 .evalnow{margin-top:8px;padding:14px 18px;border-radius:12px;border:0;background:var(--strength);color:#fff;font-weight:600;font-size:17px}
 
 /* Movement drawings (FIG in app.js). Figure: --ink near side, --fig-far far side, --strength partner. */

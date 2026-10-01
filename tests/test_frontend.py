@@ -10,14 +10,16 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 import pytest
 
-from tools import api, build
+from tools import api, build, serve
 
 ROOT = Path(__file__).resolve().parent.parent
 CASES = ROOT / "tests" / "frontend" / "cases.js"
+DRAFTS_E2E = ROOT / "tests" / "frontend" / "drafts_e2e.js"
 CANDIDATES = ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
               "/Applications/Chromium.app/Contents/MacOS/Chromium"]
 
@@ -31,23 +33,38 @@ def find_chrome() -> str | None:
     return next((c for c in CANDIDATES if Path(c).exists()), None)
 
 
-@pytest.fixture(scope="module")
-def run(tmp_path_factory):
-    chrome = find_chrome()
-    if not chrome:
-        pytest.skip("Chrome or Chromium not found")
-    tmp = tmp_path_factory.mktemp("frontend")
+def with_script(folder: Path, name: str, script_file: Path) -> Path:
+    """The built app with a test script appended, written to folder/name."""
     page = build.build().read_text(encoding="utf-8")
-    script = "<script>" + CASES.read_text(encoding="utf-8").replace("</script", "<\\/script") + "</script>"
+    script = "<script>" + script_file.read_text(encoding="utf-8").replace("</script", "<\\/script") + "</script>"
     head, _, tail = page.rpartition("</body>")
-    (tmp / "page.html").write_text(head + script + "</body>" + tail, encoding="utf-8")
+    (folder / name).write_text(head + script + "</body>" + tail, encoding="utf-8")
+    return folder / name
+
+
+def dump(chrome: str, url: str, pre_id: str):
+    """Load url in headless Chrome and return the JSON the test script wrote into <pre id=pre_id>."""
     dom = subprocess.run(
         # No --user-data-dir: headless Chrome already uses a throwaway profile, and with one it hangs on exit.
-        [chrome, "--headless=new", "--disable-gpu", "--virtual-time-budget=15000", "--dump-dom", (tmp / "page.html").as_uri()],
+        [chrome, "--headless=new", "--disable-gpu", "--virtual-time-budget=20000", "--dump-dom", url],
         capture_output=True, text=True, timeout=120).stdout
-    found = re.findall(r'<pre id="fbw-results">(.*?)</pre>', dom, re.S)
-    assert found, "cases.js wrote no results (a script error in app.js or cases.js?)"
+    found = re.findall(rf'<pre id="{pre_id}">(.*?)</pre>', dom, re.S)
+    assert found, f"no results in <pre id={pre_id}> (a script error in app.js or the test script?)"
     return json.loads(html.unescape(found[-1]))
+
+
+@pytest.fixture(scope="module")
+def chrome():
+    found = find_chrome()
+    if not found:
+        pytest.skip("Chrome or Chromium not found")
+    return found
+
+
+@pytest.fixture(scope="module")
+def run(chrome, tmp_path_factory):
+    tmp = tmp_path_factory.mktemp("frontend")
+    return dump(chrome, with_script(tmp, "page.html", CASES).as_uri(), "fbw-results")
 
 
 def test_frontend_cases_pass(run):
@@ -66,6 +83,33 @@ def test_frontend_workout_saves_through_the_api(run, tmp_path):
     got = api.get_workout(con, wid)
     assert got["name"] == "Front-end test"
     assert len(got["blocks"]) == len(sent["blocks"]) - 2  # warm-up and cool-down are returned separately
-    assert got["warm"] == [i["id"] for i in sent["blocks"][0]["items"]]
-    assert got["cool"] == [i["id"] for i in sent["blocks"][-1]["items"]]
-    assert got["blocks"][0].get("course") is True
+    assert [x["id"] for x in got["warm"]] == [i["id"] for i in sent["blocks"][0]["items"]]
+    assert [x["id"] for x in got["cool"]] == [i["id"] for i in sent["blocks"][-1]["items"]]
+    assert (got["v"], got["mode"], got["blocks"][0]["kind"]) == (2, "quick", "course")
+
+
+def test_frontend_template_saves_with_mode_and_levels(run, tmp_path):
+    db = tmp_path / "workouts.db"
+    shutil.copy(api.DEFAULT_DB, db)
+    con = api.connect(db)
+    sent = run["extra"]["toDBTemplate"]
+    got = api.get_workout(con, api.save_workout(con, sent))
+    assert got["mode"] == "template"
+    mains = [b for b in got["blocks"] if b["kind"] == "main"]
+    assert mains and all(i.get("lv") == 2 for b in mains for i in b["items"])
+
+
+def test_template_drafts_end_to_end(chrome, tmp_path):
+    """Save a draft, reopen it from Saved workouts, fill it and save it as a workout, against serve.py."""
+    shutil.copy(api.DEFAULT_DB, tmp_path / "e2e.db")
+    with_script(tmp_path, "e2e.html", DRAFTS_E2E)
+    httpd = serve.make_server(tmp_path, 0, str(tmp_path / "e2e.db"))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        out = dump(chrome, f"http://127.0.0.1:{httpd.server_address[1]}/e2e.html", "e2e")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert "error" not in out, out.get("error")
+    assert out["apiOn"] and out["draftId"] and out["listed"] and out["reopened"] and out["dirty"] is True
+    assert out["savedId"] and out["draftsLeft"] == 0 and out["savedMode"] == "template"

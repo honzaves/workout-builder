@@ -259,6 +259,120 @@
     eq(JSON.stringify(F.W),before,"workout unchanged");
   });
 
+  /* ---------- Template mode ---------- */
+  const setS=o=>Object.assign(F.S,S(),o);
+  const act=(a,attrs="")=>{const b=document.querySelector(`#plan button[data-act="${a}"]${attrs}`); yes(b,`button ${a}${attrs}`); b.click()};
+  window.confirm=()=>true;
+
+  test("genTemplate: an empty workout with the starting structure",()=>{
+    const w=F.genTemplate(S({blocks:2,course:"two",grip:"on",level:3}));
+    eq([w.v,w.mode,F.emptyCount(w),F.idsOf(w).length],[2,"template",w.warm.length+w.cool.length+w.blocks.reduce((a,b)=>a+b.items.length,0),0]);
+    eq(w.blocks.map(b=>[b.kind,b.name,b.items.length]),[["course","Obstacle course",2],["main","Block A",3],["main","Block B",3],["grip","Grip finisher",2]]);
+    eq(w.warm.map(x=>x.role),["pulse","flow","mob","mob","pulse"]);
+    eq(w.cool.map(x=>x.role),["stretch","stretch","yin","calm"]);
+    eq(w.blocks[1].rest,{ex:F.RESTS[1].ex,round:F.RESTS[1].round},"rest like Intermediate");
+    eq(w.blocks[1].rounds,3);
+    eq(F.sequence(w),[],"nothing to do yet");
+  });
+
+  test("Auto and Fill the rest fill only empty slots, at the auto-fill level, within the filters",()=>{
+    setS({mode:"template",level:3,equip:["db","kb","box","band"],partner:"off"});
+    const w=F.genTemplate(F.S); F.W=w; F.render();
+    act("auto",'[data-where="1-0"]');
+    const first=F.W.blocks[1].items[0];
+    yes(first.id&&first.lv===3,"slot filled at level 3");
+    act("fill");
+    eq(F.emptyCount(F.W),0,"all filled");
+    eq(F.W.blocks[1].items[0].id,first.id,"the first fill was kept");
+    const s={...F.W.settings,combos:"some",sprints:"some"};
+    F.idsOf(F.W).forEach(id=>yes(F.ok(F.BY[id],s),`${id} allowed`));
+    F.W.blocks.filter(b=>b.kind!=="course").forEach(b=>b.items.forEach(x=>yes(x.lv===3,`${x.id} level ${x.lv}`)));
+    yes(new Set(F.idsOf(F.W)).size===F.idsOf(F.W).length,"no repeated moves");
+  });
+
+  test("editing: add, move and remove slots and blocks; blocks are renamed",()=>{
+    setS({mode:"template",blocks:2,course:"off",grip:"off"});
+    F.W=F.genTemplate(F.S); F.render();
+    act("additem",'[data-b="0"]');
+    eq(F.W.blocks[0].items.length,4,"slot added");
+    eq(F.W.blocks[0].items[3].pat,"core","extra slot hint (plyoL, squat, push already there)");
+    act("auto",'[data-where="0-0"]'); const moved=F.W.blocks[0].items[0].id;
+    act("down",'[data-where="0-0"]');
+    eq(F.W.blocks[0].items[1].id,moved,"moved down");
+    act("del",'[data-where="0-1"]');
+    yes(!F.idsOf(F.W).includes(moved),"slot removed");
+    act("addblock",'[data-kind="course"][data-at="1"]');
+    eq(F.W.blocks.map(b=>b.kind),["main","course","main"]);
+    act("addblock",'[data-kind="main"][data-at="0"]');
+    eq(F.W.blocks.map(b=>b.name),["Block A","Block B","Obstacle course","Block C"],"renamed in order");
+    act("bdown",'[data-b="0"]');
+    eq(F.W.blocks.map(b=>b.name),["Block A","Block B","Obstacle course","Block C"],"names follow the order");
+    act("bdel",'[data-b="2"]');
+    eq(F.W.blocks.map(b=>b.kind),["main","main","main"]);
+    act("rounds",'[data-b="0"][data-d="1"]'); act("rounds",'[data-b="0"][data-d="1"]');
+    eq(F.W.blocks[0].rounds,5);
+    const sel=document.querySelector('#plan select[data-b="1"]'); sel.value="3"; sel.dispatchEvent(new Event("change",{bubbles:true}));
+    eq(F.W.blocks[1].rest,{ex:F.RESTS[3].ex,round:F.RESTS[3].round},"Beast rest");
+  });
+
+  test("editing: warm-up and cool-down counts keep the role order",()=>{
+    F.W=F.genTemplate(S({blocks:1,course:"off",grip:"off"})); F.render();
+    act("warmcount",'[data-d="1"]');
+    eq(F.W.warm.map(x=>x.role),["pulse","flow","mob","mob","pulse","mob"]);
+    act("coolcount",'[data-d="1"]');
+    eq(F.W.cool.map(x=>x.role),["stretch","stretch","yin","yin","calm"],"extra yin before the calm finish");
+    act("coolcount",'[data-d="-1"]'); act("coolcount",'[data-d="-1"]');
+    eq(F.W.cool.map(x=>x.role),["stretch","stretch","calm"],"yin holds go first");
+    act("warmcount",'[data-d="-1"]');
+    eq(F.W.warm.length,5);
+  });
+
+  test("Choose in a template keeps the chosen level even when it equals the auto-fill level",()=>{
+    setS({mode:"template",level:2,course:"off",grip:"off",blocks:1});
+    F.W=F.genTemplate(F.S); F.render();
+    document.querySelector('.choose[data-choose="0-1"]').click();
+    dlg.querySelector(".prow").click(); dlg.querySelector("#pUse").click();
+    const it=F.W.blocks[0].items[1];
+    yes(it.id&&it.lv,"filled with an explicit level");
+  });
+
+  test("a template with empty slots asks before Start; toDB skips them and records mode and levels",()=>{
+    setS({mode:"template",level:2,course:"one",grip:"off",blocks:2,equip:["box","db"]});
+    F.W=F.genTemplate(F.S); F.render();
+    act("auto",'[data-where="1-0"]'); act("auto",'[data-where="w-0"]'); act("auto",'[data-where="0-0"]');
+    window.confirm=()=>false;
+    document.getElementById("start").click();
+    yes(!document.getElementById("follow").classList.contains("on"),"follow-along not started");
+    window.confirm=()=>true;
+    const db=F.toDB(F.W,"Template test");
+    eq(db.mode,"template");
+    eq(db.blocks.map(b=>b.kind),["warmup","course","main","cooldown"],"empty blocks and sections skipped");
+    eq(db.blocks[2].items[0].level,2);
+    eq(db.settings.blocks,2);
+    act("fill");
+    extra.toDBTemplate=F.toDB(F.W,"Template test");
+  });
+
+  test("mode switch: template hides the generator settings and builds a template",()=>{
+    setS({mode:"quick"});
+    document.querySelector('[data-key="mode"] [data-v="template"]').click();
+    yes(document.querySelector('[data-not="template"]').hidden,"plyo/sprints/combos hidden");
+    eq(document.getElementById("build").textContent,"Create template");
+    F.W=null;
+    document.getElementById("build").click();
+    eq(F.W.mode,"template");
+    act("auto",'[data-where="w-0"]');
+    let asked=false; window.confirm=()=>(asked=true,false);
+    document.querySelector('[data-key="mode"] [data-v="quick"]').click();
+    document.getElementById("build").click();
+    yes(asked&&F.W.mode==="template","asked before replacing unsaved template work, kept it on No");
+    window.confirm=()=>true;
+    document.getElementById("build").click();
+    eq(F.W.mode,"quick");
+    yes(!document.querySelector('[data-not="template"]').hidden,"settings back");
+    eq(document.getElementById("build").textContent,"Build workout");
+  });
+
   const pre=document.createElement("pre"); pre.id="fbw-results";
   pre.textContent=JSON.stringify({results,extra});
   document.body.appendChild(pre);

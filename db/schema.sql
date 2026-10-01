@@ -200,7 +200,8 @@ CREATE TABLE workout (
     with_partner       INTEGER NOT NULL CHECK (with_partner IN (0, 1)),
     estimated_seconds  INTEGER NOT NULL CHECK (estimated_seconds > 0),  -- snapshot at generation
     generator_version  TEXT    NOT NULL,
-    is_favorite        INTEGER NOT NULL DEFAULT 0 CHECK (is_favorite IN (0, 1))
+    is_favorite        INTEGER NOT NULL DEFAULT 0 CHECK (is_favorite IN (0, 1)),
+    mode               TEXT    NOT NULL DEFAULT 'quick' CHECK (mode IN ('quick', 'mix', 'template'))  -- how it was built
 ) STRICT;
 CREATE INDEX ix_workout_created ON workout (created_at);
 
@@ -235,6 +236,7 @@ CREATE TABLE workout_item (
     prescription       TEXT    NOT NULL,                     -- snapshot: '8 each side', '45s'
     hold_seconds       INTEGER CHECK (hold_seconds > 0),     -- snapshot, for the timer
     estimated_seconds  INTEGER NOT NULL CHECK (estimated_seconds > 0),  -- one round, excluding rest
+    level_id           INTEGER REFERENCES level (level_id) ON DELETE RESTRICT,  -- NULL = the workout's level
     UNIQUE (block_id, position)
 ) STRICT;
 CREATE INDEX ix_workout_item_exercise ON workout_item (exercise_id);
@@ -247,6 +249,16 @@ CREATE TABLE workout_item_equipment (
     PRIMARY KEY (item_id, equipment_id)
 ) STRICT, WITHOUT ROWID;
 CREATE INDEX ix_workout_item_equipment_by_equipment ON workout_item_equipment (equipment_id);
+
+-- A template that's still being put together (Template mode): the app's workout document as JSON,
+-- empty slots included. Not a workout yet, so no evaluations; saving it as a workout deletes the draft.
+CREATE TABLE workout_draft (
+    draft_id    INTEGER PRIMARY KEY,
+    name        TEXT    NOT NULL CHECK (length(trim(name)) > 0),
+    created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    updated_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    doc         TEXT    NOT NULL CHECK (json_valid(doc))
+) STRICT;
 
 -- One attempt at a workout. A workout can be done many times.
 CREATE TABLE workout_session (

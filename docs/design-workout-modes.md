@@ -177,7 +177,7 @@ Level 4 was the gap when this design was written (lunge had 1 level-4 exercise, 
 
 ### 6.1 Database (migration `003_workout_modes.sql`, plus `db/schema.sql`)
 
-- `workout`: add `mode TEXT NOT NULL DEFAULT 'quick' CHECK (mode IN ('quick','mix','template'))`. The Quick-only settings (`plyo_mode`, `sprint_mode`, `combo_mode`) become nullable for template workouts; this needs a table rebuild in SQLite (copy, drop, rename, recreate indexes and views), keeping the two saved workouts.
+- `workout`: add `mode TEXT NOT NULL DEFAULT 'quick' CHECK (mode IN ('quick','mix','template'))`. **As built (phase 3):** the Quick-only settings (`plyo_mode`, `sprint_mode`, `combo_mode`) stay `NOT NULL`: a template still carries the full settings object from the panel, so the values are stored as they are, and no table rebuild was needed.
 - `workout_item`: add `level_id INTEGER REFERENCES level` (NULL = the workout's level). The prescription snapshot stays as today.
 - `workout_block` already allows any number of course and grip blocks in any position and stores rest per block, so it needs no change.
 - New table `workout_draft (draft_id, name, created_at, updated_at, doc TEXT NOT NULL CHECK (json_valid(doc)))`, holding the version 2 object as JSON.

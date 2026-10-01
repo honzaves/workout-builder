@@ -14,7 +14,7 @@ document.querySelector('[data-key="equip"]').insertAdjacentHTML("beforeend",
   Object.entries(DATA.equipment).map(([k,v])=>`<button data-v="${k}">${v}</button>`).join(""));
 
 /* ---------- Settings ---------- */
-const DEF = {blocks:3,level:2,plyo:"some",sprints:"some",combos:"some",grip:"on",partner:"off",course:"one",equip:[]};
+const DEF = {mode:"quick",blocks:3,level:2,plyo:"some",sprints:"some",combos:"some",grip:"on",partner:"off",course:"one",equip:[]};
 let S = load("fbw-settings", DEF);
 let W = null; // the workout on screen; loaded from localStorage by loadW() once the generator is defined
 // Settings saved before the length was a block count: 20/30/45/60 min meant 2/3/4/5 blocks.
@@ -33,9 +33,19 @@ document.querySelectorAll(".seg").forEach(g=>{
     const v=isNaN(b.dataset.v)?b.dataset.v:Number(b.dataset.v);
     if(multi){const a=S[key]; S[key]=a.includes(v)?a.filter(x=>x!==v):[...a,v];} else S[key]=v;
     save("fbw-settings",S); sync();
+    if(key==="mode") syncMode();
   });
   sync();
 });
+// Template mode hides the generator-only settings and relabels the ones it uses differently.
+const MODE_LABELS={template:{"l-time":"Exercise blocks to start with (add or remove them later)","l-level":"Auto-fill level (used by the Auto buttons)",
+  "l-oc":"Start with an obstacle course","l-grip":"Start with a grip finisher","build":"Create template"}};
+function syncMode(){
+  document.querySelectorAll("[data-not]").forEach(f=>f.hidden=f.dataset.not===S.mode);
+  Object.keys(MODE_LABELS.template).forEach(id=>{const el=document.getElementById(id); el.dataset.orig??=el.textContent;
+    el.textContent=(MODE_LABELS[S.mode]||{})[id]||el.dataset.orig});
+}
+syncMode();
 
 const ALL_EQ=[...document.querySelectorAll('[data-key="equip"] button')].map(b=>b.dataset.v);
 const allBtn=document.getElementById("allEq");
@@ -172,6 +182,59 @@ function genQuick(s){
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
   const cool=slots([["stretch",0],["stretch",1],...[...Array(YIN[s.blocks]||2).keys()].map(k=>["yin",k]),["calm",0]]);
   return {v:2,mode:"quick",settings:{...s,equip:[...s.equip]},warm,cool,blocks};
+}
+
+/* ---------- Template mode: an empty workout, filled by hand (Choose) or with Auto ---------- */
+const WARM_ORDER=["pulse","flow","mob","mob","pulse"];
+const HINTS=["core","plyoL","push","pull","squat","hinge","lunge","plyoU"]; // patterns for extra block slots, in this order
+const TPL_REST=1, MAX_MAIN=6, MAX_PHASE=8; // new blocks rest like Intermediate; at most 6 main blocks, 8 warm-up/cool-down moves
+const emptyItem=pat=>({id:null,pat,lv:null});
+const slotsOf=w=>[...w.warm,...w.blocks.flatMap(b=>b.items),...w.cool];
+const emptyCount=w=>slotsOf(w).filter(x=>!x.id).length;
+const mainCount=w=>w.blocks.filter(b=>b.kind==="main").length;
+const restPreset=i=>({ex:RESTS[i].ex,round:RESTS[i].round});
+const nextHint=b=>HINTS.find(p=>!b.items.some(x=>x.pat===p))||"core";
+// The generator-only settings (sprints, combos) are hidden in Template mode, so they don't filter anything there.
+const genSettings=w=>w.mode==="template"?{...w.settings,combos:"some",sprints:"some"}:w.settings;
+// Main blocks are lettered in order after every change: Block A, B, C …
+function nameBlocks(w){let n=0; w.blocks.forEach(b=>{if(b.kind==="main") b.name="Block "+String.fromCharCode(65+n++)}); return w}
+function newBlock(kind,w,s){
+  if(kind==="course") return {kind,name:"Obstacle course",rounds:1,items:[emptyItem("course")]};
+  if(kind==="grip") return {kind,name:"Grip finisher",rounds:2,rest:restPreset(TPL_REST),items:[emptyItem("grip"),emptyItem("grip")]};
+  const t=TEMPL[mainCount(w)%TEMPL.length];
+  return {kind:"main",name:"",rounds:3,rest:restPreset(TPL_REST),items:t.slots.map(sl=>emptyItem(resolve(sl,s)))};
+}
+function genTemplate(s){
+  const w={v:2,mode:"template",settings:{...s,equip:[...s.equip]},warm:WARM_ORDER.map(role=>({id:null,role})),
+    cool:["stretch","stretch",...Array(YIN[s.blocks]||2).fill("yin"),"calm"].map(role=>({id:null,role})),blocks:[]};
+  if(s.course&&s.course!=="off") w.blocks.push({...newBlock("course"),items:(s.course==="two"?["course","course"]:["course"]).map(emptyItem)});
+  for(let i=0;i<Math.min(s.blocks||3,MAX_MAIN);i++) w.blocks.push(newBlock("main",w,s));
+  if(s.grip==="on") w.blocks.push(newBlock("grip"));
+  return nameBlocks(w);
+}
+// Fill one empty slot like the generator would: the slot's pattern (or role) at the auto-fill level (settings.level),
+// within the equipment kit of what's already filled. Returns false when nothing fits.
+function autoFill(w,x,section){
+  const s=genSettings(w), used=new Set(idsOf(w));
+  if(section==="warm"||section==="cool"){
+    const pool=rs=>[...new Set(rs.flatMap(r=>DATA.phases[r]||[]))].filter(id=>BY[id]&&!used.has(id)&&ok(BY[id],s));
+    let c=pool([x.role]); if(!c.length) c=pool(section==="warm"?WARM_ROLES:COOL_ROLES);
+    if(!c.length) return false;
+    x.id=c[Math.floor(Math.random()*c.length)]; return true;
+  }
+  const kit=kitOf(blockIds(w),{...s,blocks:Math.min(MAX_MAIN,Math.max(1,mainCount(w)))});
+  const id=pick(x.pat,s,used,false,false,kit)||(section==="main"?pick("plyoL",s,used,false,false,kit):null);
+  if(!id) return false;
+  x.id=id; x.lv=s.level;
+  if(BY[id].p!==x.pat&&BY[id].p2!==x.pat) x.pat=BY[id].p;
+  return true;
+}
+// Every empty slot, top to bottom, so the kit builds up in order. Returns how many couldn't be filled.
+function fillRest(w){
+  let missed=0;
+  const go=(x,sec)=>{if(!x.id&&!autoFill(w,x,sec)) missed++};
+  w.warm.forEach(x=>go(x,"warm")); w.blocks.forEach(b=>b.items.forEach(x=>go(x,b.kind))); w.cool.forEach(x=>go(x,"cool"));
+  return missed;
 }
 const WARM_SECS=40, COOL_SECS=45;
 const holdSecs=(id,d)=>BY[id].t||d;
@@ -395,17 +458,18 @@ function howHTML(ex){
   return `<div class="how">${figsHTML(ex.id,150)}<ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
   <p><b>Cue:</b> ${ex.c}</p>${ex.x?`<p><b>Avoid:</b> ${ex.x}</p>`:""}</div>`;
 }
-function row(id,meta,swappable,where){
+function row(id,meta,swappable,where,extra=""){
   const ex=BY[id], j=isJump(id);
   return `<details class="${j?"jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
     ${tagsHTML(ex)}
     ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">Choose</button>`:""}
-    <span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
+    ${extra}<span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
 }
+let TPL_NOTE=""; // a one-off message for the template header, e.g. after Fill the rest
 function render(){
   if(!W){plan.hidden=true;return}
-  const seq=sequence(W);
+  const seq=sequence(W), tpl=W.mode==="template";
   const jumps=blockIds(W).filter(isJump).length;
   // timeline strip
   let strip=`<span class="w" style="flex:${filled(W.warm).reduce((a,x)=>a+holdSecs(x.id,WARM_SECS),0)}"></span><span class="gap"></span>`;
@@ -421,13 +485,15 @@ function render(){
   <div class="strip" aria-hidden="true">${strip}</div>
   <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
   <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
-  <div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button><button id="print">Print</button></div>
+  ${tpl?tplHead():`<div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button><button id="print">Print</button></div>`}
   ${saveHTML()}
   <section class="sec"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
   ${(()=>{const g=equipList(W);return g.length?`<ul class="gear">${g.map(([lab,uses])=>`<li><label><input type="checkbox"><span><b>${lab}</b><small>${[...uses].join(", ")}</small></span></label></li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`})()}
   </section>
-  ${evalsHTML()}
-  <section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
+  ${evalsHTML()}`;
+  if(tpl) h+=tplSections();
+  else{
+  h+=`<section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
   <div class="list">${W.warm.map((x,i)=>x.id?row(x.id,holdLabel(x.id,WARM_SECS),true,`w-${i}`):"").join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
     h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
@@ -436,11 +502,15 @@ function render(){
   h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
   <div class="list">${W.cool.map((x,i)=>x.id?row(x.id,holdLabel(x.id,COOL_SECS),true,`c-${i}`):"").join("")}</div></section>
   <p class="foot">${FOOT}</p>`;
-  plan.innerHTML=h; plan.hidden=false;
-  document.getElementById("start").onclick=startFollow;
-  document.getElementById("again").onclick=build;
-  document.getElementById("print").onclick=()=>printWorkout(W);
+  }
+  plan.innerHTML=h; plan.hidden=false; TPL_NOTE="";
+  // A template can be started or printed with empty slots; they're skipped after a warning.
+  const skipOk=()=>{const n=emptyCount(W); return !n||confirm(`${n} empty ${n===1?"slot":"slots"} will be skipped. Go ahead?`)};
+  document.getElementById("start").onclick=()=>{if(skipOk()) startFollow()};
+  document.getElementById("again").onclick=()=>build(W.mode);
+  document.getElementById("print").onclick=()=>{if(skipOk()) printWorkout(W)};
   const sf=document.getElementById("saveForm"); if(sf) sf.onsubmit=saveCurrent;
+  const sd=document.getElementById("saveDraft"); if(sd) sd.onclick=saveDraftNow;
   const eb=document.getElementById("evalBtn"); if(eb) eb.onclick=()=>openEval(W.savedId,W.name,estimateSecs(W));
 }
 /* ---------- Print ---------- */
@@ -471,19 +541,23 @@ addEventListener("afterprint",()=>{printW=null; printEl.innerHTML=""; document.b
 // After a move is replaced: a saved workout becomes an unsaved copy, then store, redraw and keep focus on the button used.
 function changed(sel){
   if(W.savedId){W.editedFrom=W.name; delete W.savedId; delete W.name; delete W.sessions; delete W.lastRun}
+  if(W.draftId) W.dirty=true;
   save("fbw-workout",W); render(); const nb=plan.querySelector(sel); if(nb) nb.focus();
 }
 plan.addEventListener("click",e=>{
+  const a=e.target.closest("button[data-act]");
+  if(a){e.preventDefault(); e.stopPropagation(); return tplAct(a)}
   const c=e.target.closest(".choose");
   if(c){e.preventDefault(); e.stopPropagation(); return chooseFor(c.dataset.choose)}
   const b=e.target.closest(".swap"); if(!b) return;
   e.preventDefault(); e.stopPropagation();
+  if(W.mode==="template") tplSync();
   const where=b.dataset.where, ph=where.split("-");
   const done=()=>changed(`.swap[data-where="${where}"]`);
   const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
   // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
   if(ph[0]==="w"||ph[0]==="c"){
-    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], ss={partner:"off",...W.settings};
+    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], ss={partner:"off",...genSettings(W)};
     const roles=ph[0]==="w"?WARM_ROLES:COOL_ROLES, taken=list.map(x=>x.id);
     const pool=rs=>[...new Set(rs.flatMap(r=>DATA.phases[r]||[]))].filter(id=>BY[id]&&!taken.includes(id)&&ok(BY[id],ss));
     let c=pool([list[i].role]); if(!c.length) c=pool(roles);
@@ -493,7 +567,7 @@ plan.addEventListener("click",e=>{
   const [bi,ii]=ph.map(Number);
   const it=W.blocks[bi].items[ii];
   const used=new Set(blockIds(W));
-  const ss={combos:"some",partner:"off",...W.settings,level:lvOf(it,W)};
+  const ss={combos:"some",partner:"off",...genSettings(W),level:lvOf(it,W)};
   // Swap within the kit the rest of the workout already uses.
   const kit=kitOf(W.blocks.flatMap((bl,bj)=>filled(bl.items).filter(x=>bj!==bi||x!==it).map(x=>x.id)),ss);
   const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
@@ -599,7 +673,8 @@ pickDlg.addEventListener("click",e=>{
 pickDlg.addEventListener("close",()=>{PK=null; pickDlg.innerHTML=""});
 // "Choose" on a plan row: open the picker for that slot and put the chosen move in it.
 function chooseFor(where){
-  const ph=where.split("-"), settings={partner:"off",...W.settings}, used=new Set(idsOf(W)), sel=`.choose[data-choose="${where}"]`;
+  if(W.mode==="template") tplSync();
+  const ph=where.split("-"), settings={partner:"off",...genSettings(W)}, used=new Set(idsOf(W)), sel=`.choose[data-choose="${where}"]`;
   if(ph[0]==="w"||ph[0]==="c"){
     const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], roles=ph[0]==="w"?WARM_ROLES:COOL_ROLES;
     return openPicker({section:ph[0]==="w"?"warm":"cool",cat:list[i].role,settings,used,
@@ -610,16 +685,100 @@ function chooseFor(where){
     onPick:(id,lv,cat)=>{
       const x=BY[id];
       it.id=id; if(section==="main") it.pat=cat&&(x.p===cat||x.p2===cat)?cat:x.p;
-      if(lv&&lv!==W.settings.level) it.lv=lv; else delete it.lv;
+      // Template moves always keep their own level, so a later change of the auto-fill level doesn't touch them.
+      if(lv&&(lv!==W.settings.level||W.mode==="template")) it.lv=lv; else delete it.lv;
       changed(sel);
     }});
 }
 
-function build(){
-  W=genQuick(S); save("fbw-workout",W); render();
+/* ---------- Template editor ---------- */
+// Template mode renders the plan with editing controls: counts, rounds and rest, add/remove/reorder, and Auto buttons.
+// Auto-fill and the picker use the settings panel as it is now (level = auto-fill level, equipment, who's training).
+const PAT_LABEL=Object.fromEntries([...PICK_SECTIONS.main.cats,...PICK_SECTIONS.warm.cats,...PICK_SECTIONS.cool.cats,["course","Obstacle course"],["grip","Grip"]]);
+function tplSync(){W.settings={...W.settings,level:S.level,equip:[...S.equip],partner:S.partner}}
+const tbtn=(act,label,attrs="",aria="")=>`<button type="button" class="tbtn" data-act="${act}" ${attrs}${aria?` aria-label="${aria}"`:""}>${label}</button>`;
+const stepper=(act,attrs,val,label,min,max)=>`<span class="stepper" role="group" aria-label="${label}">${tbtn(act,"−",`${attrs} data-d="-1"${val<=min?" disabled":""}`,`Fewer ${label.toLowerCase()}`)}<b>${val}</b>${tbtn(act,"+",`${attrs} data-d="1"${val>=max?" disabled":""}`,`More ${label.toLowerCase()}`)}</span>`;
+function tplHead(){
+  const n=emptyCount(W), all=slotsOf(W).length;
+  return `<p class="tstat">${n?`<b>${n} of ${all}</b> slots empty`:"Every slot is filled"}${TPL_NOTE?` · ${TPL_NOTE}`:""}</p>
+  <div class="actions">${n?`<button type="button" data-act="fill">Fill the rest</button>`:""}<button class="go" id="start"${idsOf(W).length?"":" disabled"}>Start workout</button><button id="again">New template</button><button id="print"${idsOf(W).length?"":" disabled"}>Print</button></div>`;
+}
+function slotHTML(x,where,section,ctl){
+  const hint=PAT_LABEL[section==="warm"||section==="cool"?x.role:x.pat]||x.pat;
+  if(x.id){
+    const lv=lvOf(x,W), meta=section==="warm"?holdLabel(x.id,WARM_SECS):section==="cool"?holdLabel(x.id,COOL_SECS):`${reps(x.id,lv)} · ${LEVEL_NAMES[lv-1]}`;
+    return row(x.id,meta,true,where,ctl);
+  }
+  return `<div class="tslot"><span class="nm">Empty<small>${hint}</small></span><button class="choose" data-choose="${where}" aria-label="Choose a move for this ${hint} slot">Choose</button>${tbtn("auto","Auto",`data-where="${where}"`,`Fill this ${hint} slot automatically`)}${ctl}</div>`;
+}
+function tplSections(){
+  const ins=at=>`<div class="tins" role="group" aria-label="Add a block here">${mainCount(W)<MAX_MAIN?tbtn("addblock","+ Block",`data-kind="main" data-at="${at}"`):""}${tbtn("addblock","+ Obstacle course",`data-kind="course" data-at="${at}"`)}${tbtn("addblock","+ Grip block",`data-kind="grip" data-at="${at}"`)}</div>`;
+  const del=wh=>tbtn("del","×",`data-where="${wh}"`,"Remove this slot");
+  const phase=(key,title,note)=>`<section class="sec tsec"><h2>${title}</h2>
+    <div class="tbar"><span>Moves</span>${stepper(key+"count","",W[key].length,"Moves",1,MAX_PHASE)}</div><p class="note">${note}</p>
+    <div class="list">${W[key].map((x,i)=>slotHTML(x,`${key[0]}-${i}`,key,`<span class="tctl inl">${del(`${key[0]}-${i}`)}</span>`)).join("")}</div></section>`;
+  let h=phase("warm","Warm-up","One after another, no rest.")+ins(0);
+  W.blocks.forEach((b,bi)=>{
+    const ctl=ii=>`<span class="tctl">${tbtn("up","↑",`data-where="${bi}-${ii}"${ii?"":" disabled"}`,"Move up")}${tbtn("down","↓",`data-where="${bi}-${ii}"${ii<b.items.length-1?"":" disabled"}`,"Move down")}${del(`${bi}-${ii}`)}</span>`;
+    const rest=`<label class="tsel">Rest <select data-act="rest" data-b="${bi}">${RESTS.map((r,i)=>`<option value="${i}"${b.rest&&b.rest.ex===r.ex&&b.rest.round===r.round?" selected":""}>${LEVEL_NAMES[i]}: ${r.ex}s / ${r.round}s</option>`).join("")}</select></label>`;
+    h+=`<section class="sec tsec"><h2>${b.name}</h2>
+      <div class="tbar">${b.kind==="course"?"":`<span>Rounds</span>${stepper("rounds",`data-b="${bi}"`,b.rounds,"Rounds",1,6)}${rest}`}
+        <span class="tmove">${tbtn("bup","↑",`data-b="${bi}"${bi?"":" disabled"}`,`Move ${b.name} up`)}${tbtn("bdown","↓",`data-b="${bi}"${bi<W.blocks.length-1?"":" disabled"}`,`Move ${b.name} down`)}${tbtn("bdel","Remove",`data-b="${bi}"`,`Remove ${b.name}`)}</span></div>
+      ${b.kind==="course"?`<p class="note">${COURSE_NOTE}</p>`:""}
+      <div class="list">${b.items.length?b.items.map((x,ii)=>slotHTML(x,`${bi}-${ii}`,b.kind,ctl(ii))).join(""):`<p class="note tnone">No moves yet.</p>`}</div>
+      ${tbtn("additem","+ Exercise",`data-b="${bi}"`,`Add a slot to ${b.name}`)}</section>${ins(bi+1)}`;
+  });
+  return h+phase("cool","Cool-down",COOL_NOTE)+`<p class="foot">${FOOT}</p>`;
+}
+// One editing action from a data-act button; afterwards the blocks are renamed, stored and redrawn.
+function tplAct(b){
+  const act=b.dataset.act, bi=+b.dataset.b, d=+b.dataset.d, wh=b.dataset.where||"", ph=wh.split("-"), i=+ph[1];
+  const list=ph[0]==="w"?W.warm:ph[0]==="c"?W.cool:wh?W.blocks[+ph[0]].items:null;
+  const sw=(a,j,k)=>{[a[j],a[k]]=[a[k],a[j]]};
+  let focus=`[data-act="${act}"]${b.dataset.b!==undefined?`[data-b="${bi}"]`:""}${b.dataset.d?`[data-d="${d}"]`:""}`;
+  tplSync();
+  if(act==="auto"){
+    const sec=ph[0]==="w"?"warm":ph[0]==="c"?"cool":W.blocks[+ph[0]].kind;
+    if(!autoFill(W,list[i],sec)){b.textContent="Nothing fits"; setTimeout(()=>b.textContent="Auto",1500); return}
+    focus=`.choose[data-choose="${wh}"]`;
+  }
+  else if(act==="fill"){const m=fillRest(W); TPL_NOTE=m?`${m} ${m===1?"slot":"slots"} found nothing that fits your equipment`:""; focus="#start"}
+  else if(act==="up"&&i>0){sw(list,i,i-1); focus=`[data-act="up"][data-where="${ph[0]}-${i-1}"]`}
+  else if(act==="down"&&i<list.length-1){sw(list,i,i+1); focus=`[data-act="down"][data-where="${ph[0]}-${i+1}"]`}
+  else if(act==="del"){list.splice(i,1); focus=ph[0]==="w"||ph[0]==="c"?`[data-act="${ph[0]==="w"?"warm":"cool"}count"][data-d="1"]`:`[data-act="additem"][data-b="${ph[0]}"]`}
+  else if(act==="additem"){const bl=W.blocks[bi]; bl.items.push(emptyItem(bl.kind==="main"?nextHint(bl):bl.kind))}
+  else if(act==="rounds") W.blocks[bi].rounds=Math.min(6,Math.max(1,W.blocks[bi].rounds+d));
+  else if(act==="bup"&&bi>0){sw(W.blocks,bi,bi-1); focus=`[data-act="bup"][data-b="${bi-1}"]`}
+  else if(act==="bdown"&&bi<W.blocks.length-1){sw(W.blocks,bi,bi+1); focus=`[data-act="bdown"][data-b="${bi+1}"]`}
+  else if(act==="bdel"){
+    const bl=W.blocks[bi], n=filled(bl.items).length;
+    if(n&&!confirm(`Remove ${bl.name} and its ${n} ${n===1?"move":"moves"}?`)) return;
+    W.blocks.splice(bi,1); focus=`[data-act="addblock"][data-at="${bi}"]`;
+  }
+  else if(act==="addblock"){const at=+b.dataset.at; W.blocks.splice(at,0,newBlock(b.dataset.kind,W,genSettings(W))); focus=`[data-act="additem"][data-b="${at}"]`}
+  else if(act==="warmcount"||act==="coolcount"){
+    const L=act==="warmcount"?W.warm:W.cool;
+    if(d>0&&L.length<MAX_PHASE){
+      if(act==="warmcount") L.push({id:null,role:WARM_ORDER[L.length]||"mob"});
+      else L.splice(L.length&&L[L.length-1].role==="calm"?L.length-1:L.length,0,{id:null,role:L.length<2?"stretch":"yin"});
+    } else if(d<0&&L.length>1){const k=L.map(x=>x.role).lastIndexOf(act==="coolcount"?"yin":"mob"); L.splice(k>=0?k:L.length-1,1)}
+  }
+  nameBlocks(W); changed(focus);
+}
+function tplRest(sel){tplSync(); W.blocks[+sel.dataset.b].rest=restPreset(+sel.value); changed(`select[data-b="${sel.dataset.b}"]`)}
+// Replacing a template that has unsaved work asks first.
+function keepsWork(){
+  return !(W&&W.mode==="template"&&idsOf(W).length&&(!W.draftId||W.dirty))||
+    confirm("Replace the template you're working on? Save it as a draft first if you want to keep it.");
+}
+
+function build(mode=S.mode){
+  if(!keepsWork()) return;
+  W=mode==="template"?genTemplate(S):genQuick(S); save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
-document.getElementById("build").onclick=build;
+document.getElementById("build").onclick=()=>build();
+plan.addEventListener("change",e=>{if(e.target.dataset.act==="rest") tplRest(e.target)});
 W=loadW();
 render();
 
@@ -729,8 +888,9 @@ function toDB(w,name){
   const kit=kitOf(blockIds(w),w.settings).have;
   const gear=id=>reqs(BY[id]).map(r=>{const a=r.split("|");return a.find(q=>kit.has(q))||a.find(q=>w.settings.equip.includes(q))||a[0]});
   const timed=(id,d)=>({id,pat:BY[id].p,prescription:`${holdSecs(id,d)}s`,hold:holdSecs(id,d),est:holdSecs(id,d),equipment:gear(id)});
-  const set=it=>{const p=reps(it.id,lvOf(it,w)),m=/^(\d+)s( each side)?$/.exec(p||"");return {id:it.id,pat:it.pat,prescription:p,hold:m?+m[1]:null,est:SET_SECS,equipment:gear(it.id)}};
-  return {name,estimated_seconds:estimateSecs(w),settings:w.settings,blocks:[
+  const set=it=>{const p=reps(it.id,lvOf(it,w)),m=/^(\d+)s( each side)?$/.exec(p||"");return {id:it.id,pat:it.pat,prescription:p,hold:m?+m[1]:null,est:SET_SECS,equipment:gear(it.id),level:it.lv||null}};
+  // A template can have more or fewer main blocks than it started with; the database keeps 1-6.
+  return {name,mode:w.mode||"quick",estimated_seconds:estimateSecs(w),settings:{...w.settings,blocks:Math.min(MAX_MAIN,Math.max(1,mainCount(w)))},blocks:[
     {kind:"warmup",name:"Warm-up",rounds:1,items:filled(w.warm).map(({id})=>timed(id,WARM_SECS))},
     ...w.blocks.filter(b=>filled(b.items).length).map(b=>{const R=restOf(b,w),course=b.kind==="course";
       return {kind:b.kind,name:b.name,rounds:b.rounds,rest_ex:course?0:R.ex,rest_round:course?90:R.round,items:filled(b.items).map(set)}}),
@@ -740,6 +900,13 @@ function toDB(w,name){
 function saveHTML(){
   if(!API.on) return "";
   if(W.savedId) return `<p class="saveline">Saved as <b>${esc(W.name)}</b>. <button class="linkbtn" id="evalBtn">Evaluate it</button></p>`;
+  if(W.mode==="template"){
+    // A template is saved as a draft (empty slots allowed) or, once every slot is filled, as a workout.
+    const n=emptyCount(W);
+    return `<form class="saveform" id="saveForm"><label for="wname">${W.draftId?`Draft “${esc(W.name)}”${W.dirty?": changed since you saved it.":", saved."}`:"Save it as a draft to finish later."}${n?" Fill every slot to save it as a workout.":" Every slot is filled, so you can also save it as a workout."}</label>
+      <div><input id="wname" name="name" required maxlength="80" autocomplete="off" value="${esc(W.name||"")}" placeholder="Name, e.g. Thursday plan"><button type="button" id="saveDraft">Save draft</button><button${n?" disabled":""}>Save workout</button></div>
+      <p class="err" id="saveErr" role="alert"></p></form>`;
+  }
   return `<form class="saveform" id="saveForm"><label for="wname">${W.editedFrom?`Changed since you saved it as “${esc(W.editedFrom)}”. Save as a new workout:`:"Like it? Save it to do again and evaluate later."}</label>
     <div><input id="wname" name="name" required maxlength="80" autocomplete="off" placeholder="Name, e.g. Tuesday legs"><button>Save workout</button></div>
     <p class="err" id="saveErr" role="alert"></p></form>`;
@@ -750,7 +917,20 @@ async function saveCurrent(e){
   if(!name){err.textContent="Give the workout a name first."; return}
   try{
     const {id}=await call("POST","workouts",toDB(W,name));
+    // A finished template replaces its draft.
+    if(W.draftId){await call("DELETE",`drafts/${W.draftId}`).catch(()=>{}); delete W.draftId; delete W.dirty}
     W.savedId=id; W.name=name; W.sessions=[]; delete W.editedFrom; save("fbw-workout",W); render(); loadSaved();
+  }catch(x){err.textContent=x.message}
+}
+// The workout document without what only this browser needs.
+const draftDoc=w=>{const {savedId,name,sessions,lastRun,editedFrom,draftId,dirty,...doc}=w; return doc};
+async function saveDraftNow(){
+  const name=document.getElementById("wname").value.trim(), err=document.getElementById("saveErr");
+  if(!name){err.textContent="Give the draft a name first."; return}
+  try{
+    if(W.draftId) await call("PUT",`drafts/${W.draftId}`,{name,doc:draftDoc(W)});
+    else W.draftId=(await call("POST","drafts",{name,doc:draftDoc(W)})).id;
+    W.name=name; W.dirty=false; save("fbw-workout",W); render(); loadSaved();
   }catch(x){err.textContent=x.message}
 }
 
@@ -769,11 +949,13 @@ const savedEl=document.getElementById("saved");
 let savedOpen=false;
 async function loadSaved(){
   if(!API.on) return;
-  let list;
-  try{list=await call("GET","workouts")}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
+  let list, drafts;
+  try{[list,drafts]=await Promise.all([call("GET","workouts"),call("GET","drafts")])}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
   savedEl.hidden=false;
-  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${list.length?`${list.length} saved`:"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
-    ${list.length?`<ul class="savedlist">${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
+  const count=[list.length&&`${list.length} saved`,drafts.length&&`${drafts.length} ${drafts.length===1?"draft":"drafts"}`].filter(Boolean).join(", ");
+  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
+    ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li><div class="nm">${esc(d.name)}<small>Draft · changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
+      <div class="rowbtns"><button data-opendraft="${d.id}">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del">Delete</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
       <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
       :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
   document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);
@@ -784,6 +966,12 @@ savedEl.addEventListener("click",async e=>{
     if(b.dataset.open) await openSaved(+b.dataset.open);
     else if(b.dataset.print) printWorkout(fromDB(await call("GET",`workouts/${b.dataset.print}`)));
     else if(b.dataset.eval) openEval(+b.dataset.eval,b.dataset.name,+b.dataset.est);
+    else if(b.dataset.opendraft) await openDraft(+b.dataset.opendraft);
+    else if(b.dataset.deldraft&&confirm(`Delete the draft “${b.dataset.name}”?`)){
+      await call("DELETE",`drafts/${b.dataset.deldraft}`);
+      if(W&&W.draftId===+b.dataset.deldraft){delete W.draftId; delete W.dirty; save("fbw-workout",W); render()}
+      loadSaved();
+    }
     else if(b.dataset.del&&confirm(`Delete “${b.dataset.name}” and its evaluations?`)){
       await call("DELETE",`workouts/${b.dataset.del}`);
       if(W&&W.savedId===+b.dataset.del){delete W.savedId; delete W.name; delete W.sessions; save("fbw-workout",W); render()}
@@ -791,9 +979,20 @@ savedEl.addEventListener("click",async e=>{
     }
   }catch(x){alert(x.message)}
 });
-const fromDB=w=>upgrade({settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions});
+const fromDB=w=>upgrade({v:w.v,mode:w.mode,settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions});
 async function openSaved(id){
+  if(!keepsWork()) return;
   W=fromDB(await call("GET",`workouts/${id}`));
+  save("fbw-workout",W); render();
+  plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+}
+
+async function openDraft(id){
+  if(W&&W.draftId===id&&!W.dirty) return plan.scrollIntoView();
+  if(!keepsWork()) return;
+  const d=await call("GET",`drafts/${id}`), w=upgrade(d.doc);
+  if(!idsOf(w).every(x=>BY[x])) throw new Error("This draft uses a move that's no longer in the catalogue.");
+  W={...w,draftId:d.id,name:d.name,dirty:false};
   save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
@@ -839,4 +1038,5 @@ call("GET","workouts").then(()=>{API.on=true; loadSaved(); render()}).catch(()=>
 
 // Internals for the front-end tests (tests/frontend/cases.js); nothing in the app uses this.
 window.FBW={DATA,BY,LIB,RESTS,TEMPL,WARM_ROLES,COOL_ROLES,ok,pick,kitOf,genQuick,upgrade,loadW,lvOf,restOf,filled,idsOf,blockIds,
-  sequence,estimate,equipList,toDB,render,pickPool,openPicker,chooseFor,get W(){return W},set W(v){W=v}};
+  sequence,estimate,equipList,toDB,render,pickPool,openPicker,chooseFor,genTemplate,autoFill,fillRest,emptyCount,nameBlocks,
+  get S(){return S},get W(){return W},set W(v){W=v}};

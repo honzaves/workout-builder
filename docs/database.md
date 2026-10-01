@@ -96,10 +96,11 @@ erDiagram
 
 | Table | Holds |
 |---|---|
-| `workout` | The name you gave it when saving, the settings it was generated with (level, hard-work time, plyo, sprint, combo, course, grip, partner), the **estimated time snapshot**, generator version, favourite flag |
+| `workout` | The name you gave it when saving, how it was built (`mode`: quick, mix or template), the settings it was generated with (level, number of blocks, plyo, sprint, combo, course, grip, partner), the **estimated time snapshot**, generator version, favourite flag |
 | `workout_offered_equipment` | The equipment you *offered*: the menu, not what was used |
 | `workout_block` | Warm-up, course, blocks A-F, grip finisher and cool-down, in order, with rounds and rest times |
-| `workout_item` | One exercise in a block, with a **snapshot** of its prescription and time estimate |
+| `workout_item` | One exercise in a block, with a **snapshot** of its prescription and time estimate, and the level it's done at when that differs from the workout's (`level_id`, NULL = the workout's level; used by templates) |
+| `workout_draft` | A template that isn't finished: its name and the app's workout document as JSON (`doc`), empty slots included. Not a workout yet, so no evaluations; saving the template as a workout deletes the draft |
 | `workout_item_equipment` | Which option was used ("box", not "bench"). The kit, "What you'll need", is derived from this in `v_workout_kit`, so it's never stored twice |
 | `workout_session` | One attempt: start, finish, active seconds (pauses excluded), completed, and "felt too short / about right / too long" |
 | `session_block_time` | Actual seconds per block, from the follow-along timer |

@@ -17,6 +17,7 @@ SCHEMA_FILE = ROOT / "db" / "schema.sql"
 DEFAULT_DB = ROOT / "db" / "workouts.db"
 GENERATOR_VERSION = "js-1"
 KINDS = {"warmup", "course", "main", "grip", "cooldown"}
+MODES = {"quick", "mix", "template"}
 
 
 def connect(path: Path | str = DEFAULT_DB, create: bool = False) -> sqlite3.Connection:
@@ -115,14 +116,21 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
     """Store a generated workout under the name the user chose. Returns its id.
 
     Expected shape:
-      {"name": str, "estimated_seconds": int,
+      {"name": str, "estimated_seconds": int, "mode": "quick" | "mix" | "template" (default quick),
        "settings": {"blocks", "level", "plyo", "sprints", "combos", "course", "grip", "partner", "equip": [codes]},
        "blocks": [{"kind", "name", "rounds", "rest_ex", "rest_round",
-                   "items": [{"id": slug, "pat": pattern code, "prescription", "hold", "est", "equipment": [codes]}]}]}
+                   "items": [{"id": slug, "pat": pattern code, "prescription", "hold", "est", "equipment": [codes],
+                              "level": 1-4 or null (null = the workout's level)}]}]}
+    Every slot must be filled; a template with empty slots is saved as a draft instead (save_draft).
     """
     name = str(w.get("name") or "").strip()
     if not name:
         raise ValueError("Give the workout a name.")
+    mode = w.get("mode") or "quick"
+    if mode not in MODES:
+        raise ValueError(f"Unknown mode {mode!r}.")
+    if any(not it.get("id") for b in w.get("blocks", []) for it in b.get("items", [])):
+        raise ValueError("The workout has empty slots: fill them, or save it as a draft.")
     s = w["settings"]
     exercise = _ids(con, "exercise", "slug", "exercise_id")
     pattern = _ids(con, "movement_pattern", "code", "pattern_id")
@@ -131,10 +139,11 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
         with con:
             wid = con.execute(
                 """INSERT INTO workout (name, level_id, block_count, plyo_mode, sprint_mode, combo_mode, course_mode,
-                                        grip_finisher, with_partner, estimated_seconds, generator_version)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                                        grip_finisher, with_partner, estimated_seconds, generator_version, mode)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (name, s["level"], s["blocks"], s["plyo"], s.get("sprints", "some"), s["combos"], s["course"],
-                 int(s["grip"] == "on"), int(s["partner"] == "on"), int(w["estimated_seconds"]), GENERATOR_VERSION),
+                 int(s["grip"] == "on"), int(s["partner"] == "on"), int(w["estimated_seconds"]), GENERATOR_VERSION,
+                 mode),
             ).lastrowid
             con.executemany("INSERT INTO workout_offered_equipment VALUES (?,?)",
                             [(wid, equipment[c]) for c in s.get("equip", []) if c in equipment])
@@ -151,9 +160,9 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
                         raise ValueError(f"Unknown exercise {it['id']!r}.")
                     iid = con.execute(
                         """INSERT INTO workout_item (block_id, position, exercise_id, slot_pattern_id, prescription,
-                                                     hold_seconds, estimated_seconds) VALUES (?,?,?,?,?,?,?)""",
+                                                     hold_seconds, estimated_seconds, level_id) VALUES (?,?,?,?,?,?,?,?)""",
                         (bid, ipos, exercise[it["id"]], pattern[it["pat"]], str(it["prescription"]),
-                         it.get("hold"), int(it["est"])),
+                         it.get("hold"), int(it["est"]), it.get("level")),
                     ).lastrowid
                     con.executemany("INSERT OR IGNORE INTO workout_item_equipment VALUES (?,?)",
                                     [(iid, equipment[c]) for c in it.get("equipment", [])])
@@ -165,41 +174,51 @@ def save_workout(con: sqlite3.Connection, w: dict) -> int:
 def list_workouts(con: sqlite3.Connection) -> list[dict]:
     rows = con.execute(
         """SELECT w.workout_id AS id, w.name, w.created_at, w.level_id AS level, w.block_count AS blocks,
-                  w.estimated_seconds, s.sessions, s.avg_stars,
+                  w.mode, w.estimated_seconds, s.sessions, s.avg_stars,
                   (SELECT max(started_at) FROM workout_session x WHERE x.workout_id = w.workout_id) AS last_done
            FROM workout w JOIN v_workout_summary s USING (workout_id)
            ORDER BY w.created_at DESC, w.workout_id DESC""").fetchall()
     return [dict(r) for r in rows]
 
 
+def _first_roles(con: sqlite3.Connection) -> dict[str, str]:
+    """Each warm-up/cool-down exercise's first phase role (by role order): the slot role of a saved move."""
+    out = {}
+    for slug, role in con.execute(
+            """SELECT e.slug, r.code FROM exercise_phase_role x JOIN exercise e USING (exercise_id)
+               JOIN phase_role r USING (role_id) ORDER BY r.sort_order"""):
+        out.setdefault(slug, role)
+    return out
+
+
 def get_workout(con: sqlite3.Connection, workout_id: int) -> dict:
-    """A saved workout in the shape the app renders, plus its evaluations."""
+    """A saved workout in the shape the app renders (version 2 workout object), plus its evaluations."""
     w = con.execute("SELECT * FROM workout WHERE workout_id = ?", (workout_id,)).fetchone()
     if not w:
         raise LookupError(f"No workout {workout_id}.")
     equip = [r[0] for r in con.execute(
         """SELECT e.code FROM workout_offered_equipment o JOIN equipment e USING (equipment_id)
            WHERE o.workout_id = ? ORDER BY e.sort_order""", (workout_id,))]
-    out = {"id": w["workout_id"], "name": w["name"], "created_at": w["created_at"],
+    out = {"v": 2, "mode": w["mode"], "id": w["workout_id"], "name": w["name"], "created_at": w["created_at"],
            "estimated_seconds": w["estimated_seconds"],
            "settings": {"blocks": w["block_count"], "level": w["level_id"], "plyo": w["plyo_mode"],
                         "sprints": w["sprint_mode"], "combos": w["combo_mode"], "course": w["course_mode"],
                         "grip": "on" if w["grip_finisher"] else "off", "partner": "on" if w["with_partner"] else "off",
                         "equip": equip},
            "warm": [], "cool": [], "blocks": []}
+    roles = _first_roles(con)
     for b in con.execute("SELECT * FROM workout_block WHERE workout_id = ? ORDER BY position", (workout_id,)).fetchall():
-        items = [dict(r) for r in con.execute(
-            """SELECT e.slug AS id, p.code AS pat FROM workout_item i
+        items = [{k: v for k, v in dict(r).items() if v is not None} for r in con.execute(
+            """SELECT e.slug AS id, p.code AS pat, i.level_id AS lv FROM workout_item i
                JOIN exercise e USING (exercise_id) JOIN movement_pattern p ON p.pattern_id = i.slot_pattern_id
                WHERE i.block_id = ? ORDER BY i.position""", (b["block_id"],))]
-        if b["kind"] == "warmup":
-            out["warm"] = [i["id"] for i in items]
-        elif b["kind"] == "cooldown":
-            out["cool"] = [i["id"] for i in items]
+        if b["kind"] in ("warmup", "cooldown"):
+            fallback = "mob" if b["kind"] == "warmup" else "calm"
+            out["warm" if b["kind"] == "warmup" else "cool"] = [{"id": i["id"], "role": roles.get(i["id"], fallback)} for i in items]
         else:
-            block = {"name": b["name"], "rounds": b["rounds"], "items": items}
-            if b["kind"] == "course":
-                block["course"] = True
+            block = {"kind": b["kind"], "name": b["name"], "rounds": b["rounds"], "items": items}
+            if b["kind"] != "course":
+                block["rest"] = {"ex": b["rest_between_moves_s"], "round": b["rest_between_rounds_s"]}
             out["blocks"].append(block)
     out["sessions"] = list_sessions(con, workout_id)
     return out
@@ -262,3 +281,65 @@ def delete_workout(con: sqlite3.Connection, workout_id: int) -> None:
     with con:
         if not con.execute("DELETE FROM workout WHERE workout_id = ?", (workout_id,)).rowcount:
             raise LookupError(f"No workout {workout_id}.")
+
+
+# Drafts: templates that aren't finished, stored as the app's workout document (empty slots allowed).
+
+def _draft_doc(con: sqlite3.Connection, d: dict) -> tuple[str, dict]:
+    """Check a draft {"name", "doc"}: a name, a version 2 workout document, and only known exercise ids."""
+    name = str(d.get("name") or "").strip()
+    if not name:
+        raise ValueError("Give the draft a name.")
+    doc = d.get("doc")
+    if not isinstance(doc, dict) or doc.get("v") != 2 or not all(isinstance(doc.get(k), list) for k in ("warm", "cool", "blocks")):
+        raise ValueError("A draft must be a version 2 workout document (v, warm, cool, blocks).")
+    known = {r[0] for r in con.execute("SELECT slug FROM exercise")}
+    unknown = sorted({x for x in _slot_ids(doc) if x and x not in known})
+    if unknown:
+        raise ValueError(f"Unknown exercise {unknown[0]!r}.")
+    return name, doc
+
+
+def _slot_ids(doc: dict) -> list:
+    """Every slot's exercise id, None for an empty slot."""
+    return ([x.get("id") for x in doc["warm"] + doc["cool"]]
+            + [i.get("id") for b in doc["blocks"] for i in b.get("items", [])])
+
+
+def list_drafts(con: sqlite3.Connection) -> list[dict]:
+    """Drafts, most recently changed first, with how many of their slots are still empty."""
+    out = []
+    for r in con.execute("SELECT * FROM workout_draft ORDER BY updated_at DESC, draft_id DESC"):
+        ids = _slot_ids(json.loads(r["doc"]))
+        out.append({"id": r["draft_id"], "name": r["name"], "created_at": r["created_at"], "updated_at": r["updated_at"],
+                    "slots": len(ids), "empty": sum(1 for x in ids if not x)})
+    return out
+
+
+def save_draft(con: sqlite3.Connection, d: dict) -> int:
+    name, doc = _draft_doc(con, d)
+    with con:
+        return con.execute("INSERT INTO workout_draft (name, doc) VALUES (?, ?)", (name, json.dumps(doc))).lastrowid
+
+
+def get_draft(con: sqlite3.Connection, draft_id: int) -> dict:
+    r = con.execute("SELECT * FROM workout_draft WHERE draft_id = ?", (draft_id,)).fetchone()
+    if not r:
+        raise LookupError(f"No draft {draft_id}.")
+    return {"id": r["draft_id"], "name": r["name"], "created_at": r["created_at"], "updated_at": r["updated_at"],
+            "doc": json.loads(r["doc"])}
+
+
+def update_draft(con: sqlite3.Connection, draft_id: int, d: dict) -> None:
+    name, doc = _draft_doc(con, d)
+    with con:
+        if not con.execute(
+                """UPDATE workout_draft SET name = ?, doc = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+                   WHERE draft_id = ?""", (name, json.dumps(doc), draft_id)).rowcount:
+            raise LookupError(f"No draft {draft_id}.")
+
+
+def delete_draft(con: sqlite3.Connection, draft_id: int) -> None:
+    with con:
+        if not con.execute("DELETE FROM workout_draft WHERE draft_id = ?", (draft_id,)).rowcount:
+            raise LookupError(f"No draft {draft_id}.")
