@@ -107,6 +107,7 @@ button:disabled{cursor:default}
     padding-bottom:var(--s6);scrollbar-width:thin;overscroll-behavior:contain}
 }
 @media (min-width:1600px){.app{grid-template-columns:340px minmax(0,1fr) 380px}}
+@media (min-width:1761px){.setup{border-left:1px solid var(--line)}}
 
 /* ---------- Settings ---------- */
 .setuphead{display:flex;align-items:center;gap:var(--s3);padding:var(--s4)}
