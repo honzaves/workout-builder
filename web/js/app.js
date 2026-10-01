@@ -1022,11 +1022,11 @@ async function saveDraftNow(){
 function evalsHTML(){
   if(!API.on||!W.savedId||!W.sessions||!W.sessions.length) return "";
   const crit=DATA.criteria||[];
-  return `<section class="sec"><h2>Your evaluations</h2><ul class="evals">${W.sessions.map(s=>{
-    const d=s.delta_seconds, mins=s.active_seconds?Math.round(s.active_seconds/60):null;
-    return `<li><b>${dateLabel(s.started_at)}</b> ${s.stars?`<span class="stars" aria-label="${s.stars} of 5 stars">${stars(s.stars)}</span>`:""}
-      <small>${mins?`${mins} min (${d>0?"+":""}${Math.round(d/60)} vs estimate)`:"Time not recorded"}${s.time_feel?`, felt ${FEEL[s.time_feel].toLowerCase()}`:""}${s.completed?"":", not finished"}</small>
-      ${crit.filter(c=>s.scores[c.code]).length?`<small>${crit.filter(c=>s.scores[c.code]).map(c=>`${esc(c.name)} ${s.scores[c.code]}/5`).join(" · ")}</small>`:""}
+  return `<section class="sec">${secHead("Your evaluations",`${W.sessions.length}`)}<ul class="evals">${W.sessions.map(s=>{
+    const d=s.delta_seconds, mins=s.active_seconds?Math.round(s.active_seconds/60):null, sc=crit.filter(c=>s.scores[c.code]);
+    return `<li><div class="evhead"><b>${dateLabel(s.started_at)}</b>${s.stars?`<span class="stars" aria-label="${s.stars} of 5 stars">${stars(s.stars)}</span>`:""}</div>
+      <small>${mins?`${mins} min (${d>0?"+":""}${Math.round(d/60)} vs estimate)`:"Time not recorded"}${s.time_feel?`, felt ${FEEL[s.time_feel].toLowerCase()}`:""}${s.completed?"":`, <span class="unfinished">not finished</span>`}</small>
+      ${sc.length?`<div class="scores">${sc.map(c=>`<span>${esc(c.name)} <b>${s.scores[c.code]}</b>/5</span>`).join("")}</div>`:""}
       ${s.comments.map(c=>`<q>${esc(c)}</q>`).join("")}</li>`}).join("")}</ul></section>`;
 }
 
@@ -1038,10 +1038,10 @@ async function loadSaved(){
   try{[list,drafts]=await Promise.all([call("GET","workouts"),call("GET","drafts")])}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
   savedEl.hidden=false;
   const count=[list.length&&`${list.length} saved`,drafts.length&&`${drafts.length} ${drafts.length===1?"draft":"drafts"}`].filter(Boolean).join(", ");
-  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true">${ic("chev")}</span></summary>
-    ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li><div class="nm">${esc(d.name)}<small>Draft · changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
-      <div class="rowbtns"><button data-opendraft="${d.id}">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del">Delete</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
-      <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
+  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary>${ic("save")}<span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true">${ic("chev")}</span></summary>
+    ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li class="isdraft"><div class="nm"><span class="badge">Draft</span>${esc(d.name)}<small>Changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
+      <div class="rowbtns"><button data-opendraft="${d.id}" class="open">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del" aria-label="Delete the draft ${esc(d.name)}">${ic("trash")}</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}</small><small>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
+      <div class="rowbtns"><button data-open="${w.id}" class="open">Open</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">${ic("star")}Evaluate</button><button data-print="${w.id}" aria-label="Print ${esc(w.name)}">${ic("print")}</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del" aria-label="Delete ${esc(w.name)}">${ic("trash")}</button></div></li>`).join("")}</ul>`
       :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
   document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);
 }
@@ -1096,11 +1096,11 @@ function openEval(id,name,estSecs){
     <p class="hint">Estimated about ${Math.round(estSecs/60)} minutes in total.${run?" Pre-filled from your follow-along run.":""}</p>
     <label class="check"><input type="checkbox" name="completed" checked> I finished the whole workout</label>
     ${pickHTML("feel",Object.entries(FEEL),"The length felt")}
-    ${pickHTML("stars",[1,2,3,4,5].map(n=>[n,`${n} ★`]),"Overall rating, 1 to 5 stars")}
+    ${pickHTML("stars",[1,2,3,4,5].map(n=>[n,`${n}${ic("star")}`]),"Overall rating, 1 to 5 stars")}
     ${(DATA.criteria||[]).map(c=>`<fieldset class="pick crit"><legend>${esc(c.name)}</legend><div class="scale"><div class="seg">${[1,2,3,4,5].map(n=>`<label><input type="radio" name="c_${c.code}" value="${n}"><span>${n}</span></label>`).join("")}</div><div class="ends"><small>1: ${esc(c.low)}</small><small>5: ${esc(c.high)}</small></div></div></fieldset>`).join("")}
     <label>Comment<textarea name="comment" rows="3" maxlength="2000" placeholder="What worked, what didn't, what to change next time"></textarea></label>
     <p class="err" id="evalErr" role="alert"></p>
-    <div class="actions"><button type="button" id="evalCancel">Cancel</button><button class="go" value="save">Save evaluation</button></div></form>`;
+    <div class="actions dlgbar"><button type="button" id="evalCancel">Cancel</button><button class="go" value="save">Save evaluation</button></div></form>`;
   document.getElementById("evalCancel").onclick=()=>dlg.close();
   document.getElementById("evalForm").onsubmit=async e=>{
     e.preventDefault();
