@@ -664,15 +664,17 @@ function pickPool(st){
 }
 const pickDlg=document.getElementById("pickDlg");
 let PK=null; // picker state while open
+// From 1024px the picker is a dialog with the list on the left and the chosen move's detail beside it (#pSide).
+const pickWide=matchMedia("(min-width:1024px)");
 // opts: {section, cat, lv, settings, used (ids already in the workout), onPick(id, lv, cat)}
 function openPicker(opts){
   PK={tags:[],q:"",shown:PICK_PAGE,detail:null,...opts};
-  pickDlg.innerHTML=`<div class="pwrap"><div class="phead"><h2 id="pickTitle">${PICK_SECTIONS[PK.section].title}</h2><button class="x" id="pClose" aria-label="Close">×</button></div>
-    <div class="pfilters"><input class="psearch" id="pQ" type="search" placeholder="Search names and steps" aria-label="Search" autocomplete="off"><div id="pChips"></div></div>
-    <div class="pbody" id="pBody"></div></div>`;
+  pickDlg.innerHTML=`<div class="pwrap"><div class="phead"><h2 id="pickTitle">${PICK_SECTIONS[PK.section].title}</h2><button class="x" id="pClose" aria-label="Close">${ic("x")}</button></div>
+    <div class="pfilters"><label class="psearchwrap">${ic("search")}<input class="psearch" id="pQ" type="search" placeholder="Search names and steps" aria-label="Search" autocomplete="off"></label><div id="pChips"></div></div>
+    <div class="pmain"><div class="pbody" id="pBody"></div><div class="pside" id="pSide"><p class="pempty">Pick a move to see its drawings, steps and levels.</p></div></div></div>`;
   document.getElementById("pClose").onclick=()=>pickDlg.close();
-  document.getElementById("pQ").oninput=e=>{PK.q=e.target.value; PK.shown=PICK_PAGE; PK.detail=null; pickList()};
-  document.getElementById("pBody").onscroll=e=>{const b=e.target; if(!PK.detail&&b.scrollTop+b.clientHeight>b.scrollHeight-300) pickMore()};
+  document.getElementById("pQ").oninput=e=>{PK.q=e.target.value; PK.shown=PICK_PAGE; if(!pickWide.matches) PK.detail=null; pickList()};
+  document.getElementById("pBody").onscroll=e=>{const b=e.target; if((pickWide.matches||!PK.detail)&&b.scrollTop+b.clientHeight>b.scrollHeight-300) pickMore()};
   pickChips(); pickList();
   if(!pickDlg.open) pickDlg.showModal();
   document.getElementById("pQ").focus();
@@ -689,11 +691,12 @@ const pickMeta=x=>[phased(PK.section)?holdLabel(x.id,PK.section==="warm"?WARM_SE
   ...reqs(x).map(r=>r.split("|").map(a=>EQ_LABEL[a]||a).join(" or ")),...(reqs(x).length?[]:["bodyweight"])].join(" · ");
 function pickRow(id){
   const x=BY[id], f=FIG.has(id)?FIG.of(id,64)[0].svg:"";
-  return `<li><button class="prow" data-id="${id}"><span class="pthumb" aria-hidden="true">${f}</span>
+  return `<li><button class="prow" data-id="${id}"${PK.detail&&PK.detail.id===id?' aria-current="true"':""}><span class="pthumb" aria-hidden="true">${f}</span>
     <span class="nm">${x.n}<small>${pickMeta(x)}${PK.used.has(id)?' · <span class="pinuse">in use</span>':""}</small></span>${tagsHTML(x)}</button></li>`;
 }
 function pickList(){
   const body=document.getElementById("pBody"), ids=pickPool(PK);
+  pickDlg.querySelector(".pwrap").classList.remove("indetail");
   PK.ids=ids;
   body.innerHTML=`<p class="pcount" aria-live="polite">${ids.length} ${ids.length===1?"move":"moves"}${PK.q?` matching “${esc(PK.q)}”`:""}</p>`+
     (ids.length?`<ul class="plist">${ids.slice(0,PK.shown).map(pickRow).join("")}</ul>`:`<p class="note">Nothing fits. Clear the search or a filter, or select more equipment.</p>`)+
@@ -708,17 +711,20 @@ function pickMore(){
   if(PK.shown>=PK.ids.length) more.remove(); else more.textContent=`Show more (${PK.ids.length-PK.shown} left)`;
 }
 // The chosen move: drawings, cue and, for leveled moves, one button per level with its reps.
+// On phones and tablets the detail replaces the list (filters hidden); on wide screens it fills the side pane.
 function pickDetail(id){
-  const x=BY[id], body=document.getElementById("pBody");
+  const x=BY[id], wide=pickWide.matches, body=document.getElementById(wide?"pSide":"pBody");
   const lvs=phased(PK.section)?[]:x.r.map((r,i)=>r?i+1:0).filter(Boolean);
   PK.detail={id,lv:lvs.includes(PK.lv)?PK.lv:lvs.find(l=>l>=(PK.lv||1))||lvs[0]};
-  body.innerHTML=`<div class="pdetail"><button class="linkbtn" id="pBack">← All moves</button>
+  if(wide) pickDlg.querySelectorAll(".prow").forEach(b=>b.toggleAttribute("aria-current",b.dataset.id===id));
+  else pickDlg.querySelector(".pwrap").classList.add("indetail");
+  body.innerHTML=`<div class="pdetail"><button class="linkbtn pback" id="pBack">${ic("back")}All moves</button>
     <h3>${x.n}</h3><p class="ptags">${tagsHTML(x)}<small>${pickMeta(x)}</small></p>
-    ${figsHTML(id,150)}<p><b>Cue:</b> ${x.c}</p>
+    ${figsHTML(id,150)}<ol class="psteps">${x.s.map(t=>`<li>${t}</li>`).join("")}</ol><p class="pcue"><b>Cue</b> ${x.c}</p>
     ${lvs.length?`<p class="plab" id="pLvLab">Level</p><div class="seg plevels" role="group" aria-labelledby="pLvLab">${lvs.map(l=>`<button data-plv="${l}" aria-pressed="${l===PK.detail.lv}">${LEVEL_NAMES[l-1]}<small>${esc(x.r[l-1])}</small></button>`).join("")}</div>`:""}
-    <button class="puse" id="pUse">Use this</button></div>`;
+    <div class="pusebar"><button class="puse" id="pUse">${ic("check")}Use this</button></div></div>`;
   body.scrollTop=0;
-  document.getElementById("pBack").onclick=()=>{PK.detail=null; pickList()};
+  document.getElementById("pBack").onclick=()=>{PK.detail=null; if(wide){body.innerHTML=`<p class="pempty">Pick a move to see its drawings, steps and levels.</p>`; pickDlg.querySelectorAll(".prow[aria-current]").forEach(b=>b.removeAttribute("aria-current"))} else pickList()};
   document.getElementById("pUse").onclick=()=>{const {id,lv}=PK.detail, cb=PK.onPick, cat=PK.cat; pickDlg.close(); cb(id,lv,cat)};
   document.getElementById("pUse").focus();
 }
