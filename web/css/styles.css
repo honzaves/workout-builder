@@ -89,20 +89,20 @@ button:disabled{cursor:default}
    Wide (>=1280): settings 320px | workout (max 880px) | overview rail 340px; whole app max 1760px. */
 .app{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"setup" "rail" "main";
   gap:var(--s5);padding:var(--s4) var(--s4) calc(var(--s8) + env(safe-area-inset-bottom));max-width:760px;margin:0 auto}
-.setup{grid-area:setup} .main{grid-area:main;min-width:0} .rail{grid-area:rail;min-width:0;display:grid;gap:var(--s4);align-content:start}
+.setup{grid-area:setup} .app > .main{grid-area:main;min-width:0} .rail{grid-area:rail;min-width:0;display:grid;gap:var(--s4);align-content:start}
 .rail:not(:has(> :not([hidden]))){display:none}
 @media (min-width:1024px){
   .app{max-width:1760px;grid-template-columns:300px minmax(0,1fr);grid-template-areas:"setup rail" "setup main";
     column-gap:var(--s7);row-gap:var(--s6);padding:0 var(--s6) var(--s8) 0;align-items:start}
   .setup{position:sticky;top:var(--top-h);height:calc(100dvh - var(--top-h));display:flex;flex-direction:column;
     background:var(--surface);border-right:1px solid var(--line)}
-  .main,.rail{padding-top:var(--s6)}
-  .main{max-width:880px} .rail{max-width:880px}
+  .app > .main,.rail{padding-top:var(--s6)}
+  .app > .main{max-width:880px} .rail{max-width:880px}
   .rail{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}
 }
 @media (min-width:1280px){
   .app{grid-template-columns:320px minmax(0,1fr) 340px;grid-template-areas:"setup main rail";column-gap:var(--s7)}
-  .main{justify-self:center;width:100%}
+  .app > .main{justify-self:center;width:100%}
   .rail{position:sticky;top:var(--top-h);max-height:calc(100dvh - var(--top-h));overflow-y:auto;grid-template-columns:1fr;
     padding-bottom:var(--s6);scrollbar-width:thin;overscroll-behavior:contain}
 }
@@ -287,28 +287,92 @@ details.mv{border-top:1px solid var(--line);position:relative}
 @container (min-width:620px){.figs{grid-template-columns:repeat(auto-fill,minmax(150px,180px))}}
 .foot{font-size:var(--fs-sm);color:var(--muted);border-top:1px solid var(--line);padding-top:var(--s4);max-width:60em}
 
-/* ---------- Follow-along ---------- */
+/* ---------- Follow-along (#follow) ----------
+   Built to be read from 2 m: the clock / prescription is the biggest thing on screen, the move name second.
+   Portrait: one column (head, clock, cue, how-to) above a 72px button bar. Landscape and laptop: head + cue on the
+   left, clock on the right. .isjump (plyo) adds an orange badge and bar; .isrest dims the name; .paused dims the clock. */
 #follow{position:fixed;inset:0;background:var(--bg);z-index:var(--z-follow);display:none;flex-direction:column;
-  padding:calc(14px + env(safe-area-inset-top,0px)) 18px calc(16px + env(safe-area-inset-bottom,0px))}
+  padding:calc(var(--s2) + env(safe-area-inset-top,0px)) max(var(--s4),env(safe-area-inset-right)) calc(var(--s4) + env(safe-area-inset-bottom,0px)) max(var(--s4),env(safe-area-inset-left))}
 #follow.on{display:flex}
-.ftop{display:flex;justify-content:space-between;align-items:center;font-size:var(--fs-base);color:var(--muted);gap:10px;font-variant-numeric:tabular-nums}
-.prog{height:6px;background:var(--line);border-radius:6px;margin:10px 0 0;overflow:hidden}
-.prog div{height:100%;background:var(--strength);width:0}
-.fmain{flex:1;overflow:auto;padding:24px 0 12px;max-width:720px;width:100%;margin:0 auto}
-.fkind{font-size:var(--fs-md);color:var(--muted);margin:0 0 4px}
-.fname{font-size:clamp(34px,9vw,56px);font-weight:800;line-height:1.05;letter-spacing:-.025em;margin:0 0 14px}
-.fbig{font-size:clamp(80px,26vw,160px);font-weight:700;line-height:1;margin:0 0 6px;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
-.fcue{font-size:var(--fs-lg);margin:0 0 14px}
-.fmain .how{padding:0}
-.fmain details{border:0}
-.fmain summary{padding:8px 0;color:var(--strength);font-weight:600;cursor:pointer}
-.fnext{font-size:var(--fs-md);color:var(--muted)}
-.fnext b{color:var(--ink)}
-.fbtns{display:flex;gap:10px;max-width:720px;width:100%;margin:0 auto}
-.fbtns button{min-height:64px;padding:0 18px;border-radius:var(--r-lg);border:1.5px solid var(--line-strong);background:var(--surface);font-weight:600;font-size:var(--fs-md)}
-.fbtns .main{flex:1;border:0;background:var(--strength);color:var(--on-strength);font-size:var(--fs-xl);font-weight:700}
-.isjump .fname{box-shadow:inset 0 -12px 0 color-mix(in srgb,var(--jump) 70%,transparent)}
-.evalnow{margin-top:8px;min-height:var(--tap);padding:0 18px;border-radius:var(--r);border:0;background:var(--strength);color:var(--on-strength);font-weight:600;font-size:var(--fs-md)}
+.ftop{display:flex;justify-content:space-between;align-items:center;gap:var(--s3);font-size:var(--fs-base);font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.ftop .x{margin-right:calc(-1 * var(--s2))}
+.prog{height:6px;background:var(--surface-2);border-radius:6px;margin:var(--s1) 0 0;overflow:hidden}
+.prog div{height:100%;background:var(--ink);width:0;border-radius:inherit;transition:width var(--t) var(--ease)}
+.fmain{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:var(--s4);padding:var(--s5) 0 var(--s4);
+  max-width:1080px;width:100%;margin:0 auto;overscroll-behavior:contain}
+.fhead{display:flex;flex-direction:column;gap:var(--s2)}
+.fkind{font-size:var(--fs-md);color:var(--muted);margin:0;font-weight:500}
+.fplyo{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;margin:0;padding:6px 12px 6px 10px;border-radius:var(--r-pill);
+  background:var(--jump);color:var(--jump-ink);font-weight:700;font-size:var(--fs-sm)}
+.fplyo .ic{width:16px;height:16px}
+.fname{font-size:clamp(30px,8.5vw,60px);font-weight:800;line-height:1.05;letter-spacing:-.03em;margin:0;text-wrap:balance}
+.fclock{flex:1;display:flex;flex-direction:column;justify-content:center;gap:var(--s3);min-height:min(34vh,260px)}
+.fbig{font-size:clamp(104px,34vw,240px);font-weight:700;line-height:.9;margin:0;font-variant-numeric:tabular-nums;letter-spacing:-.05em}
+.fbig.long{font-size:clamp(56px,15vw,128px);line-height:1;letter-spacing:-.035em}
+.fbig.xlong{font-size:clamp(34px,9vw,72px);line-height:1.08;letter-spacing:-.025em;text-wrap:balance}
+.fbar{height:12px;border-radius:12px;background:var(--surface-2);overflow:hidden}
+.fbar span{display:block;height:100%;width:100%;background:var(--strength);border-radius:inherit}
+.isjump .fbar span{background:var(--jump)}
+.isrest .fbar span{background:var(--soft)}
+.paused .fbig{opacity:.4}
+.fnext{font-size:var(--fs-lg);color:var(--muted);margin:0}
+.fnext b{display:block;color:var(--ink);font-size:clamp(24px,6vw,36px);font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.fswitch:empty{display:none}
+.fswitch{align-self:flex-start;font-size:var(--fs-md);font-weight:600;color:var(--ink);background:var(--surface-2);padding:6px 14px;border-radius:var(--r-pill)}
+.fswitch b{color:var(--jump)}
+.isrest .fname{color:var(--muted)}
+.fcue{font-size:clamp(18px,4.6vw,24px);line-height:1.4;margin:0;max-width:34em}
+.fhow{border-top:1px solid var(--line);padding-top:var(--s2)}
+.fhow > summary{list-style:none;display:inline-flex;align-items:center;gap:var(--s2);min-height:var(--tap);font-weight:600;cursor:pointer;color:var(--ink)}
+.fhow > summary::-webkit-details-marker{display:none}
+.fhow > summary .ic{transition:transform var(--t) var(--ease)}
+.fhow[open] > summary .ic{transform:rotate(180deg)}
+.fmain .how{padding:var(--s2) 0 0}
+/* finished */
+.fdone{margin:auto 0;display:flex;flex-direction:column;align-items:flex-start;gap:var(--s3)}
+.fdoneic{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;background:var(--jump);color:var(--jump-ink)}
+.fdoneic .ic{width:40px;height:40px;stroke-width:3}
+.evalnow{display:inline-flex;align-items:center;gap:var(--s2);margin-top:var(--s2);min-height:56px;padding:0 var(--s5);border-radius:var(--r);border:0;
+  background:var(--strength);color:var(--on-strength);font-weight:600;font-size:var(--fs-md)}
+/* buttons: Back | primary | Next */
+.fbtns{display:grid;grid-template-columns:76px 1fr 76px;gap:var(--s2);max-width:1080px;width:100%;margin:0 auto}
+.fbtns button{min-height:76px;border-radius:var(--r-lg);border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:var(--fs-xs)}
+.fbtns button .ic{width:26px;height:26px}
+.fbtns button:hover{border-color:var(--line-strong)}
+.fbtns button:active{transform:translateY(1px)}
+.fbtns button:disabled{opacity:.3;transform:none}
+.fbtns .main{border:0;background:var(--strength);color:var(--on-strength);font-size:clamp(22px,6vw,28px);font-weight:700;letter-spacing:-.01em}
+.isjump ~ .fbtns .main{background:var(--jump);color:var(--jump-ink)}
+/* landscape phones and laptops: two columns */
+@media (orientation:landscape) and (min-width:640px){
+  .fmain{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head clock" "cue clock" "how clock";
+    grid-template-rows:auto auto 1fr;column-gap:var(--s7);align-content:start}
+  .fhead{grid-area:head} .fclock{grid-area:clock;min-height:0;align-self:center} .fcue{grid-area:cue} .fhow{grid-area:how;align-self:start}
+  .fbig{font-size:clamp(96px,17vw,260px)}
+  .fbig.long{font-size:clamp(48px,8vw,128px)}
+  .fbig.xlong{font-size:clamp(32px,4.5vw,64px)}
+  .isdone{display:flex}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #follow{padding-top:calc(var(--s1) + env(safe-area-inset-top,0px));padding-bottom:calc(var(--s2) + env(safe-area-inset-bottom,0px))}
+  .fmain{padding:var(--s2) 0}
+  .fname{font-size:clamp(26px,4.4vw,40px)}
+  .fcue{font-size:var(--fs-md)}
+  .fbtns{grid-template-columns:96px 1fr 96px}
+  .fbtns button{min-height:60px;flex-direction:row;gap:var(--s2);font-size:var(--fs-sm)}
+  .fbig{font-size:min(17vw,30vh)}
+  .fbig.long{font-size:min(8vw,15vh)}
+  .fbig.xlong{font-size:min(4.5vw,9vh)}
+  .fbar{height:10px}
+  .fnext{font-size:var(--fs-base)}
+  .fnext b{font-size:clamp(20px,3vw,26px)}
+}
+@media (min-width:1024px) and (min-height:600px){
+  #follow{padding-left:var(--s7);padding-right:var(--s7)}
+  .fbtns{grid-template-columns:120px 1fr 120px}
+  .fbtns button{flex-direction:row;gap:var(--s2);font-size:var(--fs-base)}
+}
 
 /* ---------- Saved workouts ---------- */
 .saved[hidden]{display:none}

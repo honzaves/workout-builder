@@ -879,32 +879,40 @@ function stopFollow(){
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`:String(s)};
 function nextSetName(from){for(let k=from;k<F.seq.length;k++) if(F.seq[k].id) return BY[F.seq[k].id].n; return null}
 function show(){
-  clearInterval(F.t); F.paused=false; F.half=null; F.done=null;
+  clearInterval(F.t); F.paused=false; F.half=null; F.done=null; fEl.classList.remove("paused");
   const st=F.seq[F.i];
+  document.getElementById("fback").disabled=F.i===0; document.getElementById("fskip").disabled=!st;
   if(!st){
     // Remember how long the run really took, so the evaluation can be pre-filled.
     if(F.run){W.lastRun={started_at:new Date(F.run.start).toISOString(),minutes:Math.max(1,Math.round((Date.now()-F.run.start-F.run.paused)/60000))}; F.run=null; save("fbw-workout",W);}
-    const mins=W.lastRun?` It took about ${W.lastRun.minutes} minutes.`:"";
-    fMain.innerHTML=`<p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session.${mins} Drink some water.</p>
-      ${API.on?(W.savedId?`<button class="evalnow" id="evalNow">Evaluate this workout</button>`:`<p class="fnext">Save the workout with a name to evaluate it.</p>`):""}`;
+    const m=W.lastRun&&W.lastRun.minutes, mins=m?` It took about ${m} ${m===1?"minute":"minutes"}.`:"";
+    fMain.className="fmain isdone";
+    fMain.innerHTML=`<div class="fdone"><span class="fdoneic">${ic("check")}</span><p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session.${mins} Drink some water.</p>
+      ${API.on?(W.savedId?`<button class="evalnow" id="evalNow">${ic("star")}Evaluate this workout</button>`:`<p class="fnext">Save the workout with a name to evaluate it.</p>`):""}</div>`;
     const en=document.getElementById("evalNow"); if(en) en.onclick=()=>{stopFollow(); openEval(W.savedId,W.name,estimateSecs(W))};
     fPos.textContent="Done"; fProg.style.width="100%"; fPrim.textContent="Close"; fPrim.onclick=()=>{stopFollow(); render()}; beep(990,.3); return;}
   fPos.textContent=`Step ${F.i+1} of ${F.seq.length}`;
   fProg.style.width=(F.i/F.seq.length*100)+"%";
-  fMain.classList.toggle("isjump",!!(st.id&&isJump(st.id)));
+  // Layout: .fhead (section, name), .fclock (the big number, a draining bar for countdowns), .fcue, "How to do it".
+  const jump=!!(st.id&&isJump(st.id)), bar=`<div class="fbar" aria-hidden="true"><span id="fbarfill"></span></div>`;
+  fMain.className=`fmain${jump?" isjump":""}${st.k==="rest"?" isrest":""}`;
   if(st.k==="rest"){
     const nx=nextSetName(F.i+1);
-    fMain.innerHTML=`<p class="fkind">${st.sec}</p><h2 class="fname">Rest</h2><p class="fbig" id="fclock">${fmt(st.secs)}</p>
-      ${nx?`<p class="fnext">Next up: <b>${nx}</b></p>`:""}`;
+    fMain.innerHTML=`<div class="fhead"><p class="fkind">${st.sec}</p><h2 class="fname">Rest</h2></div>
+      <div class="fclock"><p class="fbig" id="fclock">${fmt(st.secs)}</p>${bar}
+      ${nx?`<p class="fnext">Next up: <b>${nx}</b></p>`:""}</div>`;
     fPrim.textContent="Skip rest"; fPrim.onclick=()=>{F.i++;show()};
     countdown(st.secs);
   } else {
     const ex=BY[st.id];
-    fMain.innerHTML=`<p class="fkind">${st.sec}${isJump(st.id)?". Plyo: full effort, every rep":""}</p>
-      <h2 class="fname">${ex.n}</h2>
-      ${st.k==="timed"?`<p class="fbig" id="fclock">${fmt(st.secs)}</p>${ex.sw?'<p class="fnext" id="fswitch">Switch sides halfway</p>':""}`:`<p class="fbig" id="fclock">${st.reps}</p><p class="fnext" id="fswitch"></p>`}
+    // Long prescriptions ("40 double-unders + 15 push-ups, x3") get a smaller size so they still fit.
+    const big=st.k==="timed"?fmt(st.secs):String(st.reps), size=big.length>14?" xlong":big.length>5?" long":"", hold=/^(\d+)s( each side)?$/.test(st.reps||"");
+    fMain.innerHTML=`<div class="fhead"><p class="fkind">${st.sec}</p>${jump?`<p class="fplyo">${ic("bolt")}Plyo: full effort, every rep</p>`:""}
+      <h2 class="fname">${ex.n}</h2></div>
+      <div class="fclock"><p class="fbig${size}" id="fclock">${big}</p>${st.k==="timed"||hold?bar:""}
+      ${st.k==="timed"?(ex.sw?'<p class="fnext fswitch" id="fswitch">Switch sides halfway</p>':""):'<p class="fnext fswitch" id="fswitch"></p>'}</div>
       <p class="fcue">${ex.c}</p>
-      <details${st.k==="set"?"":""}><summary>How to do it</summary>${howHTML(ex)}</details>`;
+      <details class="fhow"><summary>${ic("chev")}How to do it</summary>${howHTML(ex)}</details>`;
     if(st.k==="timed"){F.half=ex.sw?st.secs/2:null; fPrim.textContent="Pause"; fPrim.onclick=togglePause; countdown(st.secs);}
     else {
       // Timed holds ("30s", "20s each side") get a timer: 5 s to get in position, then the hold.
@@ -924,12 +932,15 @@ function show(){
   }
   fMain.scrollTop=0;
 }
-function countdown(secs,done){
+function countdown(secs,done,total=secs){
   if(done) F.done=done;
-  F.end=Date.now()+secs*1000;
+  F.end=Date.now()+secs*1000; F.total=total;
+  const fill=()=>{const b=document.getElementById("fbarfill"); if(b) b.style.width=Math.max(0,(F.end-Date.now())/1000/F.total*100)+"%"};
+  fill();
   F.t=setInterval(()=>{
     const left=(F.end-Date.now())/1000, c=document.getElementById("fclock");
     if(c) c.textContent=fmt(left);
+    fill();
     if(F.half&&left<=F.half){F.half=null; beep(880,.25); const w=document.getElementById("fswitch"); if(w) w.innerHTML="<b>Switch sides now</b>";}
     if(left<=3.05&&left>2.8||left<=2.05&&left>1.8||left<=1.05&&left>.8) beep(660,.06);
     if(left<=0){clearInterval(F.t); beep(990,.2); if(F.done){const d=F.done;F.done=null;d()} else {F.i++; show();}}
@@ -937,7 +948,8 @@ function countdown(secs,done){
 }
 function togglePause(){
   if(!F.paused){F.left=(F.end-Date.now())/1000; clearInterval(F.t); F.paused=true; F.pausedAt=Date.now(); fPrim.textContent="Resume";}
-  else {F.paused=false; if(F.run) F.run.paused+=Date.now()-F.pausedAt; fPrim.textContent="Pause"; countdown(F.left);}
+  else {F.paused=false; if(F.run) F.run.paused+=Date.now()-F.pausedAt; fPrim.textContent="Pause"; countdown(F.left,null,F.total);}
+  fEl.classList.toggle("paused",F.paused);
 }
 document.getElementById("fclose").onclick=stopFollow;
 document.getElementById("fback").onclick=()=>{if(F.i>0){F.i--; if(F.seq[F.i].k==="rest"&&F.i>0) F.i--; show();}};
