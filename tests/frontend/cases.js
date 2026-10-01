@@ -373,6 +373,69 @@
     eq(document.getElementById("build").textContent,"Build workout");
   });
 
+  /* ---------- Mix levels ---------- */
+  test("genMix: four moves per block, levels 1 to 4 in order, mixed patterns",()=>{
+    for(let k=0;k<20;k++){
+      const s=S({blocks:1+k%6,level:1+k%4,course:k%2?"one":"off",grip:k%3?"on":"off"}), w=F.genMix(s);
+      eq(w.mode,"mix");
+      eq(w.blocks.filter(b=>b.kind==="main").length,s.blocks,"block count");
+      w.blocks.filter(b=>b.kind==="main").forEach(b=>{
+        eq(b.items.map(x=>x.lv),[1,2,3,4],`${b.name} levels with all equipment`);
+        b.items.forEach(x=>{eq(F.BY[x.id].l||1,x.lv,`${x.id} is really level ${x.lv}`); yes(F.ok(F.BY[x.id],{...s,level:4}),`${x.id} allowed`)});
+        eq(new Set(b.items.map(x=>x.pat)).size,4,`${b.name}: four different patterns ${b.items.map(x=>x.pat)}`);
+      });
+      eq(w.warm.length,5,"warm-up as in Quick");
+    }
+  });
+
+  test("genMix: bodyweight only falls back to neighbouring levels and keeps the order",()=>{
+    for(let k=0;k<20;k++){
+      const s=S({blocks:3,equip:[],partner:"off"}), w=F.genMix(s);
+      w.blocks.filter(b=>b.kind==="main").forEach(b=>{
+        eq(b.items.length,4,"four moves");
+        const lv=b.items.map(x=>x.lv);
+        yes(lv.every((l,i)=>!i||l>=lv[i-1]),`ascending ${lv}`);
+        b.items.forEach(x=>{eq(F.BY[x.id].l||1,x.lv,`${x.id} level`); yes(!(F.BY[x.id].e||[]).length,`${x.id} bodyweight`)});
+      });
+    }
+  });
+
+  test("mixLevels gives level 4 to the pattern with the most level-4 options",()=>{
+    const s=S(), pats=["lunge","push","plyoU","hinge"], n=p=>F.LIB.filter(x=>(x.p===p||x.p2===p)&&x.l===4&&F.ok(x,{...s,level:4})).length;
+    const best=pats.reduce((a,b)=>n(b)>n(a)?b:a);
+    const lv=F.mixLevels(pats,s,new Set());
+    eq([...lv].sort(),[1,2,3,4],"each level once");
+    eq(pats[lv.indexOf(4)],best,"level 4");
+  });
+
+  test("Mix: reps and level per move, Swap keeps the level, saved with mode and levels",()=>{
+    const w=F.genMix(S({course:"off",grip:"off",blocks:1,level:2}));
+    F.W=w; F.render();
+    const b=w.blocks[0];
+    b.items.forEach(x=>eq(F.sequence(w).find(q=>q.id===x.id).reps,F.BY[x.id].r[x.lv-1]||[...F.BY[x.id].r].reverse().find(Boolean),`${x.id} reps at level ${x.lv}`));
+    yes(document.querySelector('.swap[data-where="0-0"]').closest("summary").querySelector("small").textContent.includes(" · Beginner"),"level shown");
+    yes(document.querySelector("#plan").textContent.includes("from level 1 to level 4"),"block note");
+    const before=b.items[2].id;
+    for(let k=0;k<5&&F.W.blocks[0].items[2].id===before;k++) document.querySelector('.swap[data-where="0-2"]').click();
+    const it=F.W.blocks[0].items[2];
+    yes(it.id!==before,"swapped"); eq([it.lv,F.BY[it.id].l],[3,3],"still level 3");
+    const db=F.toDB(F.W,"Mix test");
+    eq(db.mode,"mix"); eq(db.blocks[1].items.map(x=>x.level),[1,2,3,4]);
+    extra.toDBMix=db;
+  });
+
+  test("mode switch: Mix levels builds a mix workout and keeps the generator settings",()=>{
+    setS({mode:"quick"}); F.W=null;
+    document.querySelector('[data-key="mode"] [data-v="mix"]').click();
+    yes(!document.querySelector('[data-not="template"]').hidden,"plyo/sprints/combos stay");
+    yes(document.getElementById("l-level").textContent.includes("level 1 to level 4"),"level label");
+    document.getElementById("build").click();
+    eq(F.W.mode,"mix");
+    document.getElementById("again").click();
+    eq(F.W.mode,"mix","New workout repeats the mode");
+    document.querySelector('[data-key="mode"] [data-v="quick"]').click();
+  });
+
   const pre=document.createElement("pre"); pre.id="fbw-results";
   pre.textContent=JSON.stringify({results,extra});
   document.body.appendChild(pre);

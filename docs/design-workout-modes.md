@@ -169,6 +169,8 @@ Level 4 was the gap when this design was written (lunge had 1 level-4 exercise, 
 
 `validate.py` gets a warning (not an error) when a pattern used in `TEMPL` has no bodyweight solo exercise at some level, so gaps show up as the catalogue grows.
 
+**As built (phase 4):** the other generator settings carry over from Quick: `plyo` "lots" makes the 4th slot a plyo pattern when the block has none; combo and partner preferences go to one random slot per block (combos following Quick's none/some/lots/max rule); `sprints` "none" excludes sprint moves and "lots" prefers one in the block's plyoL slot. Swap keeps a Mix move's level (`pickAt`).
+
 ### 5.3 Template
 
 `genTemplate(s)` builds the empty structure: warm-up 5 slots, the optional course, `s.blocks` main blocks with 3 slots each (hint patterns from `TEMPL`), the optional grip block, cool-down (2 stretch, `YIN[s.blocks]` yin, 1 calm). `autoFill(w, where)` and `fillRest(w)` reuse `pick()`, with the kit rebuilt from the filled slots (`kitOf`).

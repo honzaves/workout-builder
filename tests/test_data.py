@@ -78,3 +78,13 @@ def test_build_produces_self_contained_html():
     end = html.index(";\n</script>", start)
     inlined = json.loads(html[start:end].replace("<\\/script", "</script"))
     assert inlined == validate.load()
+
+
+def test_mix_level_warnings():
+    data = validate.load()
+    assert validate.warnings(data) == []
+    data = copy.deepcopy(data)
+    data["exercises"] = [e for e in data["exercises"]
+                         if not ("lunge" in (e.get("pattern"), e.get("also_pattern")) and e.get("level") == 4)]
+    assert any("'lunge'" in w and "level 4" in w for w in validate.warnings(data))
+    assert not any("Mix levels" in e for e in validate.validate(data))  # a warning, not an error

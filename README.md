@@ -16,11 +16,12 @@ Your browser opens at `http://localhost:8000/index.html`. Edit anything under `w
 
 Everything the app shows comes from the SQLite database `db/workouts.db`: exercises, equipment, levels, the warm-up and cool-down lists, and your saved workouts. The server refuses to start if the database is missing or empty.
 
-### Two ways to build a workout
+### Three ways to build a workout
 
 **How to build it** at the top switches between:
 
 - **Generate it**: the app builds the whole workout from your settings (the classic way).
+- **Generate, levels 1 to 4**: generated the same way, but every block has four moves that get harder in order: one each at Beginner, Intermediate, Advanced and Beast, still mixing movement patterns. Level 4 goes to the pattern with the most Beast-level options for your equipment; if a level has nothing that fits, the nearest level is used. Here the Level setting only sets rest times and rounds; each move shows its own level, and Swap keeps it.
 - **Put it together myself**: **Create template** gives you an empty workout to fill: a warm-up, an optional obstacle course, the number of blocks you picked, an optional grip finisher and a cool-down. Every slot shows what belongs there (squat, pull, mobility …). Fill a slot with **Choose** (the list described below, where you also pick the level for that move) or **Auto** (the app picks one, at the **Auto-fill level**), or press **Fill the rest** for every empty slot at once. Rounds and rest are set per block; warm-up and cool-down get a move counter; blocks and moves can be added, removed and moved up or down, and **+ Block / + Obstacle course / + Grip block** between the blocks inserts one there. Plyometrics, sprints and combo settings only apply to generated workouts, so they're hidden in this mode; equipment and who's training still filter Choose and Auto.
 
 A template can be started or printed with empty slots (they're skipped after a warning). With the server running, **Save draft** keeps an unfinished template under a name: drafts are listed at the top of Saved workouts with how many slots are still empty, and open back into the editor. Once every slot is filled, **Save workout** saves it like a generated workout (with evaluations) and deletes the draft.

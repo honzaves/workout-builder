@@ -221,6 +221,23 @@ def validate_figures(data: dict) -> list[str]:
     return errors
 
 
+MIX_PATTERNS = ["plyoL", "plyoU", "squat", "hinge", "lunge", "push", "pull", "core"]
+
+
+def warnings(data: dict) -> list[str]:
+    """Gaps that don't break anything but make the app fall back. Mix levels wants a move at every level 1-4 for each
+    block pattern; with bodyweight only and no partner, a missing level means a neighbouring level is used instead."""
+    active = [e for e in data["exercises"] if not e.get("retired")]
+    out = []
+    for p in MIX_PATTERNS:
+        for lv in range(1, 5):
+            if not any(p in (e.get("pattern"), e.get("also_pattern")) and (e.get("level") or 1) == lv
+                       and not e.get("equipment") and not e.get("partner") for e in active):
+                out.append(f"pattern '{p}' has no bodyweight solo exercise at level {lv}; Mix levels falls back to "
+                           f"a neighbouring level there for people without equipment")
+    return out
+
+
 def summary(data: dict) -> str:
     ex = data["exercises"]
     by_pattern: dict[str, int] = {}
@@ -244,6 +261,8 @@ def main() -> int:
             print("  -", e)
         return 1
     print("OK:", summary(data))
+    for w in warnings(data):
+        print("  note:", w)
     return 0
 
 

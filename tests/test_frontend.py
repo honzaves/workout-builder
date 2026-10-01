@@ -99,6 +99,15 @@ def test_frontend_template_saves_with_mode_and_levels(run, tmp_path):
     assert mains and all(i.get("lv") == 2 for b in mains for i in b["items"])
 
 
+def test_frontend_mix_saves_with_levels(run, tmp_path):
+    db = tmp_path / "workouts.db"
+    shutil.copy(api.DEFAULT_DB, db)
+    con = api.connect(db)
+    got = api.get_workout(con, api.save_workout(con, run["extra"]["toDBMix"]))
+    assert got["mode"] == "mix"
+    assert [i["lv"] for i in got["blocks"][0]["items"]] == [1, 2, 3, 4]
+
+
 def test_template_drafts_end_to_end(chrome, tmp_path):
     """Save a draft, reopen it from Saved workouts, fill it and save it as a workout, against serve.py."""
     shutil.copy(api.DEFAULT_DB, tmp_path / "e2e.db")

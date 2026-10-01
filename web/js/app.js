@@ -38,7 +38,7 @@ document.querySelectorAll(".seg").forEach(g=>{
   sync();
 });
 // Template mode hides the generator-only settings and relabels the ones it uses differently.
-const MODE_LABELS={template:{"l-time":"Exercise blocks to start with (add or remove them later)","l-level":"Auto-fill level (used by the Auto buttons)",
+const MODE_LABELS={mix:{"l-level":"Level (sets rest and rounds; every block runs from level 1 to level 4)"},template:{"l-time":"Exercise blocks to start with (add or remove them later)","l-level":"Auto-fill level (used by the Auto buttons)",
   "l-oc":"Start with an obstacle course","l-grip":"Start with a grip finisher","build":"Create template"}};
 function syncMode(){
   document.querySelectorAll("[data-not]").forEach(f=>f.hidden=f.dataset.not===S.mode);
@@ -81,8 +81,9 @@ function kitOf(ids,s){
   need.forEach(a=>{if(!a.some(q=>kit.have.has(q))) kit.have.add(a[0])});
   return kit;
 }
-function pick(pattern,s,used,pref,prefPt,kit,prefSp){
-  let c=LIB.filter(x=>(x.p===pattern||x.p2===pattern)&&ok(x,s)&&!(x.cb&&s.combos==="none"));
+// exact: only moves whose level is exactly that (Mix levels); s.level should then be 4 so ok() lets every level through.
+function pick(pattern,s,used,pref,prefPt,kit,prefSp,exact){
+  let c=LIB.filter(x=>(x.p===pattern||x.p2===pattern)&&ok(x,s)&&!(x.cb&&s.combos==="none")&&(!exact||(x.l||1)===exact));
   if(kit&&c.length){
     // Stay within the kit's size; if nothing fits, add as little new equipment as possible.
     const n=c.map(x=>newGear(x,s,kit).length), least=Math.min(...n), room=kit.max-kit.have.size;
@@ -182,6 +183,42 @@ function genQuick(s){
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
   const cool=slots([["stretch",0],["stretch",1],...[...Array(YIN[s.blocks]||2).keys()].map(k=>["yin",k]),["calm",0]]);
   return {v:2,mode:"quick",settings:{...s,equip:[...s.equip]},warm,cool,blocks};
+}
+
+/* ---------- Mix levels: every block runs from level 1 to level 4 ---------- */
+const MIX_EXTRA=["core","plyoL","push","pull"]; // the 4th slot's pattern, rotating per block, skipping ones already there
+// Which slot gets which level: level 4 (the thinnest) goes to the pattern with the most level-4 candidates the user
+// can do, then level 3, 2 and 1 among the rest. Ties are broken at random so blocks vary.
+function mixLevels(pats,s,used){
+  const s4={...s,level:4}, n=(p,l)=>LIB.filter(x=>(x.p===p||x.p2===p)&&(x.l||1)===l&&ok(x,s4)&&!used.has(x.id)).length;
+  const lv=Array(pats.length).fill(1); let free=shuffle(pats.map((_,k)=>k));
+  [4,3,2,1].forEach(l=>{if(!free.length) return; const k=free.reduce((b,k)=>n(pats[k],l)>n(pats[b],l)?k:b,free[0]); lv[k]=l; free=free.filter(x=>x!==k)});
+  return lv;
+}
+// A move at exactly level lv, else the nearest level below, then above (A2 in docs/design-workout-modes.md).
+function pickAt(pat,s,used,lv,kit,pref,prefPt,prefSp){
+  const order=[lv,...[3,2,1].filter(l=>l<lv),...[2,3,4].filter(l=>l>lv)];
+  for(const l of order){const id=pick(pat,{...s,level:4},used,pref,prefPt,kit,prefSp,l); if(id) return {id,lv:l}}
+  return null;
+}
+function genMix(s){
+  // Warm-up, cool-down, course and grip finisher as in Quick; the main blocks are rebuilt with four moves each.
+  const w=genQuick(s), keep=w.blocks.filter(b=>b.kind!=="main"), used=new Set(keep.flatMap(b=>b.items.map(x=>x.id)));
+  const kit=kitOf([...used],s), blocks=[];
+  for(let i=0;i<Math.min(s.blocks||3,TEMPL.length);i++){
+    const pats=TEMPL[i].slots.map(sl=>resolve(sl,s)), hasPlyo=pats.some(p=>/^plyo/.test(p));
+    pats.push(s.plyo==="lots"&&!hasPlyo?resolve("plyoX",s):[...MIX_EXTRA.slice(i%4),...MIX_EXTRA].find(p=>!pats.includes(p))||"core");
+    const lvs=mixLevels(pats,s,used), k=n=>Math.floor(Math.random()*n);
+    const cb=s.combos==="max"?-2:(s.combos==="lots"||(s.combos==="some"&&i%2===0))?k(4):-1, pt=s.partner==="on"?k(4):-1;
+    const sp=s.sprints==="lots"?pats.findIndex(p=>p==="plyoL"):-1;
+    const items=pats.map((pat,j)=>{const got=pickAt(pat,s,used,lvs[j],kit,cb===-2||cb===j,pt===j,sp===j)||pickAt("plyoL",s,used,lvs[j],kit);
+      return got&&{id:got.id,pat,lv:got.lv}}).filter(Boolean);
+    items.sort((a,b)=>a.lv-b.lv);
+    blocks.push({kind:"main",name:"Block "+"ABCDEF"[i],rounds:RESTS[s.level-1].rounds,items});
+  }
+  w.blocks=[...keep.filter(b=>b.kind==="course"),...blocks,...keep.filter(b=>b.kind==="grip")];
+  w.mode="mix";
+  return w;
 }
 
 /* ---------- Template mode: an empty workout, filled by hand (Choose) or with Auto ---------- */
@@ -449,7 +486,7 @@ const FOOT="On plyo moves, land softly and end the set when landings get loud or
 function blockNote(b,w){
   if(b.kind==="course") return COURSE_NOTE;
   const R=restOf(b,w);
-  return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${filled(b.items).some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
+  return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${w.mode==="mix"&&b.kind==="main"?" The moves get harder through the block, from level 1 to level 4.":filled(b.items).some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
 }
 const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120&&ex.p==="cool"?'<span class="tag">Yin</span>':""}${ex.ct?'<span class="tag cb">Slow + fast</span>':ex.cb?'<span class="tag cb">Combo</span>':""}${ex.sp?'<span class="tag">Sprint</span>':isJump(ex.id)?'<span class="tag">Plyo</span>':""}`;
 // The exercise's drawings, each captioned with the steps it shows.
@@ -497,7 +534,7 @@ function render(){
   <div class="list">${W.warm.map((x,i)=>x.id?row(x.id,holdLabel(x.id,WARM_SECS),true,`w-${i}`):"").join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
     h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
-    <div class="list">${b.items.map((it,ii)=>it.id?row(it.id,reps(it.id,lvOf(it,W)),true,`${bi}-${ii}`):"").join("")}</div></section>`;
+    <div class="list">${b.items.map((it,ii)=>it.id?row(it.id,reps(it.id,lvOf(it,W))+(it.lv?` · ${LEVEL_NAMES[it.lv-1]}`:""),true,`${bi}-${ii}`):"").join("")}</div></section>`;
   });
   h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
   <div class="list">${W.cool.map((x,i)=>x.id?row(x.id,holdLabel(x.id,COOL_SECS),true,`c-${i}`):"").join("")}</div></section>
@@ -570,7 +607,10 @@ plan.addEventListener("click",e=>{
   const ss={combos:"some",partner:"off",...genSettings(W),level:lvOf(it,W)};
   // Swap within the kit the rest of the workout already uses.
   const kit=kitOf(W.blocks.flatMap((bl,bj)=>filled(bl.items).filter(x=>bj!==bi||x!==it).map(x=>x.id)),ss);
-  const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
+  const pr=[!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots"];
+  // Mix levels: keep the move's level (or the nearest one), so the block still runs from level 1 to 4.
+  if(W.mode==="mix"&&it.lv){const got=pickAt(it.pat,ss,used,it.lv,pr[2],pr[0],pr[1],pr[3]); if(!got) return none(); it.id=got.id; it.lv=got.lv; return done()}
+  const id=pick(it.pat,ss,used,...pr);
   if(id){it.id=id; done()} else none();
 });
 /* ---------- Exercise picker ---------- */
@@ -774,7 +814,7 @@ function keepsWork(){
 
 function build(mode=S.mode){
   if(!keepsWork()) return;
-  W=mode==="template"?genTemplate(S):genQuick(S); save("fbw-workout",W); render();
+  W=mode==="template"?genTemplate(S):mode==="mix"?genMix(S):genQuick(S); save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
 document.getElementById("build").onclick=()=>build();
@@ -1039,4 +1079,4 @@ call("GET","workouts").then(()=>{API.on=true; loadSaved(); render()}).catch(()=>
 // Internals for the front-end tests (tests/frontend/cases.js); nothing in the app uses this.
 window.FBW={DATA,BY,LIB,RESTS,TEMPL,WARM_ROLES,COOL_ROLES,ok,pick,kitOf,genQuick,upgrade,loadW,lvOf,restOf,filled,idsOf,blockIds,
   sequence,estimate,equipList,toDB,render,pickPool,openPicker,chooseFor,genTemplate,autoFill,fillRest,emptyCount,nameBlocks,
-  get S(){return S},get W(){return W},set W(v){W=v}};
+  genMix,mixLevels,pickAt,get S(){return S},get W(){return W},set W(v){W=v}};
