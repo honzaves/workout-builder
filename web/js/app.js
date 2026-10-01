@@ -16,11 +16,9 @@ document.querySelector('[data-key="equip"]').insertAdjacentHTML("beforeend",
 /* ---------- Settings ---------- */
 const DEF = {blocks:3,level:2,plyo:"some",sprints:"some",combos:"some",grip:"on",partner:"off",course:"one",equip:[]};
 let S = load("fbw-settings", DEF);
-let W = load("fbw-workout", null);
+let W = null; // the workout on screen; loaded from localStorage by loadW() once the generator is defined
 // Settings saved before the length was a block count: 20/30/45/60 min meant 2/3/4/5 blocks.
 if(S.duration){S.blocks={20:2,30:3,45:4,60:5}[S.duration]||3;delete S.duration;save("fbw-settings",S)}
-if(W&&W.settings&&!W.settings.blocks){W.settings.blocks=W.blocks.filter(b=>/^Block /.test(b.name)).length||3;delete W.settings.duration}
-if(W){try{const ids=[...W.warm,...W.cool,...W.blocks.flatMap(b=>b.items.map(i=>i.id))];if(!ids.every(id=>BY[id])) W=null;}catch(e){W=null}}
 function load(k,d){try{const v=localStorage.getItem(k);return v?Object.assign(Array.isArray(d)?[]:(d?{...d}:{}),JSON.parse(v)):d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 
@@ -100,7 +98,37 @@ function resolve(slot,s){
   return slot;
 }
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function generate(s){
+
+/* ---------- Workout object (version 2) ---------- */
+// {v:2, mode:"quick"|"mix"|"template", settings, warm:[{id,role}], cool:[{id,role}],
+//  blocks:[{kind:"main"|"course"|"grip", name, rounds, rest?:{ex,round}, items:[{id,pat,lv?}]}]}
+// An id of null is an empty slot (template mode). Item lv and block rest fall back to the workout's level.
+const WARM_ROLES=["pulse","flow","mob"], COOL_ROLES=["stretch","yin","calm"];
+const roleOf=(id,roles)=>roles.find(r=>(DATA.phases[r]||[]).includes(id))||roles[roles.length-1];
+const lvOf=(it,w)=>it.lv||w.settings.level;
+const restOf=(b,w)=>b.rest||RESTS[w.settings.level-1];
+const filled=a=>a.filter(x=>x.id);
+const blockIds=w=>w.blocks.flatMap(b=>filled(b.items)).map(x=>x.id);
+const idsOf=w=>[...filled(w.warm).map(x=>x.id),...blockIds(w),...filled(w.cool).map(x=>x.id)];
+// Version 1 (before modes): warm/cool were id lists, the course block had course:true, the grip block was found by name.
+function upgrade(w){
+  if(!w||w.v===2) return w;
+  const ph=(ids,roles)=>ids.map(id=>({id,role:roleOf(id,roles)}));
+  return {...w,v:2,mode:"quick",warm:ph(w.warm,WARM_ROLES),cool:ph(w.cool,COOL_ROLES),
+    blocks:w.blocks.map(({course,...b})=>({...b,kind:course?"course":b.name==="Grip finisher"?"grip":"main"}))};
+}
+function loadW(){
+  let w=load("fbw-workout",null);
+  try{
+    if(w&&w.settings&&!w.settings.blocks){w.settings.blocks=w.blocks.filter(b=>/^Block /.test(b.name)).length||3;delete w.settings.duration}
+    w=upgrade(w);
+    // Discard a stored workout that uses an exercise id that no longer exists.
+    if(w&&!idsOf(w).every(id=>BY[id])) w=null;
+  }catch(e){w=null}
+  return w;
+}
+
+function genQuick(s){
   const used=new Set(), blocks=[], kit={have:new Set(),max:KIT[s.blocks]||5};
   // Course and grip finisher first: their equipment starts the kit, and the blocks reuse it.
   const oc=[];
@@ -131,19 +159,19 @@ function generate(s){
       const id=pick(pat,s,used,cbSlot===-2||k===cbSlot,k===ptSlot,kit,k===spSlot)||pick("plyoL",s,used,false,false,kit);
       if(id) items.push({id,pat});
     });
-    blocks.push({name:"Block "+"ABCDEF"[i],rounds:RESTS[s.level-1].rounds,items});
+    blocks.push({kind:"main",name:"Block "+"ABCDEF"[i],rounds:RESTS[s.level-1].rounds,items});
   }
-  if(oc.length) blocks.unshift({name:"Obstacle course",rounds:1,course:true,items:oc});
-  if(g.length) blocks.push({name:"Grip finisher",rounds:2,items:g.map(id=>({id,pat:"grip"}))});
+  if(oc.length) blocks.unshift({kind:"course",name:"Obstacle course",rounds:1,items:oc});
+  if(g.length) blocks.push({kind:"grip",name:"Grip finisher",rounds:2,items:g.map(id=>({id,pat:"grip"}))});
   // Warm-up: pulse raiser, full-body flow, two mobility drills, then a second pulse raiser.
   // The id lists per role come from the database (exercise_phase_role); moves the settings rule out are dropped.
-  const role=r=>shuffle((DATA.phases[r]||[]).filter(id=>BY[id]&&ok(BY[id],s)));
-  const pulse=role("pulse"),flow=role("flow"),mob=role("mob");
-  const warm=[pulse[0],flow[0],mob[0],mob[1],pulse[1]];
+  const P={};
+  [...WARM_ROLES,...COOL_ROLES].forEach(r=>P[r]=shuffle((DATA.phases[r]||[]).filter(id=>BY[id]&&ok(BY[id],s))));
+  const slots=list=>list.map(([role,k])=>({id:P[role][k],role})).filter(x=>x.id);
+  const warm=slots([["pulse",0],["flow",0],["mob",0],["mob",1],["pulse",1]]);
   // Cool-down: two short stretches, yin holds (more for longer workouts), then a calm finish.
-  const stretch=role("stretch"),yin=role("yin"),calm=role("calm");
-  const cool=[stretch[0],stretch[1],...yin.slice(0,YIN[s.blocks]||2),calm[0]];
-  return {settings:{...s,equip:[...s.equip]},warm,cool,blocks};
+  const cool=slots([["stretch",0],["stretch",1],...[...Array(YIN[s.blocks]||2).keys()].map(k=>["yin",k]),["calm",0]]);
+  return {v:2,mode:"quick",settings:{...s,equip:[...s.equip]},warm,cool,blocks};
 }
 const WARM_SECS=40, COOL_SECS=45;
 const holdSecs=(id,d)=>BY[id].t||d;
@@ -152,19 +180,21 @@ const reps=(id,lv)=>{const r=BY[id].r;return r[lv-1]||[...r].reverse().find(Bool
 const isJump=id=>/^plyo|^course/.test(BY[id].p);
 
 /* ---------- Sequence for follow-along ---------- */
+// Empty slots (template mode) are skipped; blocks left with nothing are dropped.
 function sequence(w){
-  const lv=w.settings.level, R=RESTS[lv-1], seq=[];
-  w.warm.forEach(id=>seq.push({k:"timed",id,secs:holdSecs(id,WARM_SECS),sec:"Warm-up"}));
-  w.blocks.forEach((b,bi)=>{
+  const seq=[], bl=w.blocks.map(b=>({...b,items:filled(b.items)})).filter(b=>b.items.length);
+  filled(w.warm).forEach(({id})=>seq.push({k:"timed",id,secs:holdSecs(id,WARM_SECS),sec:"Warm-up"}));
+  bl.forEach((b,bi)=>{
+    const R=restOf(b,w), course=b.kind==="course";
     for(let r=1;r<=b.rounds;r++){
       b.items.forEach((it,ii)=>{
-        seq.push({k:"set",id:it.id,reps:reps(it.id,lv),sec:b.course?"Obstacle course: rest 60 to 90s between runs":`${b.name}, round ${r} of ${b.rounds}`});
-        const lastItem=ii===b.items.length-1, lastRound=r===b.rounds, lastBlock=bi===w.blocks.length-1;
-        if(!(lastItem&&lastRound&&lastBlock)) seq.push({k:"rest",secs:b.course?90:(lastItem?R.round:R.ex),sec:"Rest"});
+        seq.push({k:"set",id:it.id,reps:reps(it.id,lvOf(it,w)),sec:course?"Obstacle course: rest 60 to 90s between runs":`${b.name}, round ${r} of ${b.rounds}`});
+        const lastItem=ii===b.items.length-1, lastRound=r===b.rounds, lastBlock=bi===bl.length-1;
+        if(!(lastItem&&lastRound&&lastBlock)) seq.push({k:"rest",secs:course?90:(lastItem?R.round:R.ex),sec:"Rest"});
       });
     }
   });
-  w.cool.forEach(id=>seq.push({k:"timed",id,secs:holdSecs(id,COOL_SECS),sec:BY[id].t>=120?"Cool-down: yin hold":"Cool-down"}));
+  filled(w.cool).forEach(({id})=>seq.push({k:"timed",id,secs:holdSecs(id,COOL_SECS),sec:BY[id].t>=120?"Cool-down: yin hold":"Cool-down"}));
   return seq;
 }
 const SET_SECS=40;
@@ -177,8 +207,8 @@ const EQ_LABEL=DATA.equipment;
 const EXTRA=DATA.extras;
 const QTY=DATA.quantities;
 function equipList(w){
-  const ids=[...w.warm,...w.blocks.flatMap(b=>b.items.map(i=>i.id)),...w.cool];
-  const map=new Map(), kit=kitOf(w.blocks.flatMap(b=>b.items.map(i=>i.id)),w.settings).have;
+  const ids=idsOf(w);
+  const map=new Map(), kit=kitOf(blockIds(w),w.settings).have;
   const add=(label,ex)=>{if(!map.has(label)) map.set(label,new Set()); map.get(label).add(QTY[ex.id]?`${ex.n} (${QTY[ex.id]})`:ex.n);};
   [...new Set(ids)].forEach(id=>{
     const ex=BY[id];
@@ -354,9 +384,9 @@ const COURSE_NOTE="Set up the course before you start. Rest 60 to 90 seconds bet
 const COOL_NOTE="A couple of short stretches, then longer yin holds: settle into each pose at about 70% of your range, stay still and let gravity do the work. Finish by breathing slowly.";
 const FOOT="On plyo moves, land softly and end the set when landings get loud or sloppy. Skip or swap jumps if you have joint pain, are recovering from injury, or have a condition that makes impact risky.";
 function blockNote(b,w){
-  if(b.course) return COURSE_NOTE;
-  const R=RESTS[w.settings.level-1];
-  return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${b.items.some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
+  if(b.kind==="course") return COURSE_NOTE;
+  const R=restOf(b,w);
+  return `${b.rounds} rounds. Rest ${R.ex}s between moves and ${R.round}s after each round.${filled(b.items).some(i=>isJump(i.id))?" Plyo moves come first while you're fresh.":""}${w.settings.partner==="on"?" Partner moves: switch roles after each set, so one works while the other holds or rests.":""}`;
 }
 const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120&&ex.p==="cool"?'<span class="tag">Yin</span>':""}${ex.ct?'<span class="tag cb">Slow + fast</span>':ex.cb?'<span class="tag cb">Combo</span>':""}${ex.sp?'<span class="tag">Sprint</span>':isJump(ex.id)?'<span class="tag">Plyo</span>':""}`;
 // The exercise's drawings, each captioned with the steps it shows.
@@ -375,15 +405,15 @@ function row(id,meta,swappable,where){
 }
 function render(){
   if(!W){plan.hidden=true;return}
-  const lv=W.settings.level, seq=sequence(W);
-  const jumps=W.blocks.reduce((a,b)=>a+b.items.filter(i=>isJump(i.id)).length,0);
+  const seq=sequence(W);
+  const jumps=blockIds(W).filter(isJump).length;
   // timeline strip
-  let strip=`<span class="w" style="flex:${W.warm.reduce((a,id)=>a+holdSecs(id,WARM_SECS),0)}"></span><span class="gap"></span>`;
+  let strip=`<span class="w" style="flex:${filled(W.warm).reduce((a,x)=>a+holdSecs(x.id,WARM_SECS),0)}"></span><span class="gap"></span>`;
   W.blocks.forEach(b=>{
-    for(let r=0;r<b.rounds;r++) b.items.forEach(it=>strip+=`<span class="${isJump(it.id)?"j":"s"}" style="flex:${SET_SECS}"></span>`);
+    for(let r=0;r<b.rounds;r++) filled(b.items).forEach(it=>strip+=`<span class="${isJump(it.id)?"j":"s"}" style="flex:${SET_SECS}"></span>`);
     strip+=`<span class="gap"></span>`;
   });
-  strip+=`<span class="w" style="flex:${W.cool.reduce((a,id)=>a+holdSecs(id,COOL_SECS),0)}"></span>`;
+  strip+=`<span class="w" style="flex:${filled(W.cool).reduce((a,x)=>a+holdSecs(x.id,COOL_SECS),0)}"></span>`;
 
   const total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
   let h=`<div class="timebox"><p class="hard"><b>About ${total-wm-cm} min</b> of hard work</p>
@@ -398,13 +428,13 @@ function render(){
   </section>
   ${evalsHTML()}
   <section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
-  <div class="list">${W.warm.map((id,i)=>row(id,holdLabel(id,WARM_SECS),true,`w-${i}`)).join("")}</div></section>`;
+  <div class="list">${W.warm.map((x,i)=>x.id?row(x.id,holdLabel(x.id,WARM_SECS),true,`w-${i}`):"").join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
     h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
-    <div class="list">${b.items.map((it,ii)=>row(it.id,reps(it.id,lv),true,`${bi}-${ii}`)).join("")}</div></section>`;
+    <div class="list">${b.items.map((it,ii)=>it.id?row(it.id,reps(it.id,lvOf(it,W)),true,`${bi}-${ii}`):"").join("")}</div></section>`;
   });
   h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
-  <div class="list">${W.cool.map((id,i)=>row(id,holdLabel(id,COOL_SECS),true,`c-${i}`)).join("")}</div></section>
+  <div class="list">${W.cool.map((x,i)=>x.id?row(x.id,holdLabel(x.id,COOL_SECS),true,`c-${i}`):"").join("")}</div></section>
   <p class="foot">${FOOT}</p>`;
   plan.innerHTML=h; plan.hidden=false;
   document.getElementById("start").onclick=startFollow;
@@ -428,9 +458,9 @@ function printHTML(w){
   return `<header><h1>${w.name?esc(w.name):"Full-body workout"}</h1>
     <p>${LEVEL_NAMES[lv-1]} · about ${total-wm-cm} min of hard work, ${total} min in total · printed ${dateLabel(new Date().toISOString())}</p></header>
     <section><h2>What you'll need</h2>${gear.length?`<ul class="pgear">${gear.map(([lab,uses])=>`<li><b>${lab}</b>: ${[...uses].join(", ")}</li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`}${w.settings.partner==="on"?`<p class="note">Plus your partner.</p>`:""}</section>
-    ${sec("Warm-up","One after another, no rest.",w.warm.map(id=>move(id,holdLabel(id,WARM_SECS))))}
-    ${w.blocks.map(b=>sec(b.name,blockNote(b,w),b.items.map(it=>move(it.id,reps(it.id,lv),b.rounds)))).join("")}
-    ${sec("Cool-down",COOL_NOTE,w.cool.map(id=>move(id,holdLabel(id,COOL_SECS))))}
+    ${sec("Warm-up","One after another, no rest.",filled(w.warm).map(({id})=>move(id,holdLabel(id,WARM_SECS))))}
+    ${w.blocks.filter(b=>filled(b.items).length).map(b=>sec(b.name,blockNote(b,w),filled(b.items).map(it=>move(it.id,reps(it.id,lvOf(it,w)),b.rounds)))).join("")}
+    ${sec("Cool-down",COOL_NOTE,filled(w.cool).map(({id})=>move(id,holdLabel(id,COOL_SECS))))}
     <p class="note">${FOOT}</p>`;
 }
 let printW=null; // set while printing something other than the workout on screen
@@ -447,27 +477,28 @@ plan.addEventListener("click",e=>{
   const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
   // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
   if(ph[0]==="w"||ph[0]==="c"){
-    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], cur=list[i], ss={partner:"off",...W.settings};
-    const roles=ph[0]==="w"?["pulse","flow","mob"]:["stretch","yin","calm"];
-    const pool=rs=>[...new Set(rs.flatMap(r=>DATA.phases[r]||[]))].filter(id=>BY[id]&&!list.includes(id)&&ok(BY[id],ss));
-    let c=pool(roles.filter(r=>(DATA.phases[r]||[]).includes(cur))); if(!c.length) c=pool(roles);
+    const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], ss={partner:"off",...W.settings};
+    const roles=ph[0]==="w"?WARM_ROLES:COOL_ROLES, taken=list.map(x=>x.id);
+    const pool=rs=>[...new Set(rs.flatMap(r=>DATA.phases[r]||[]))].filter(id=>BY[id]&&!taken.includes(id)&&ok(BY[id],ss));
+    let c=pool([list[i].role]); if(!c.length) c=pool(roles);
     if(!c.length) return none();
-    list[i]=c[Math.floor(Math.random()*c.length)]; return done();
+    list[i]={...list[i],id:c[Math.floor(Math.random()*c.length)]}; return done();
   }
   const [bi,ii]=ph.map(Number);
   const it=W.blocks[bi].items[ii];
-  const used=new Set(W.blocks.flatMap(bl=>bl.items.map(x=>x.id)));
-  const ss={combos:"some",partner:"off",...W.settings};
+  const used=new Set(blockIds(W));
+  const ss={combos:"some",partner:"off",...W.settings,level:lvOf(it,W)};
   // Swap within the kit the rest of the workout already uses.
-  const kit=kitOf(W.blocks.flatMap((bl,bj)=>bl.items.filter((x,xj)=>bj!==bi||xj!==ii).map(x=>x.id)),ss);
+  const kit=kitOf(W.blocks.flatMap((bl,bj)=>filled(bl.items).filter(x=>bj!==bi||x!==it).map(x=>x.id)),ss);
   const id=pick(it.pat,ss,used,!!BY[it.id].cb,!!BY[it.id].pt,kit,!!BY[it.id].sp&&ss.sprints==="lots");
   if(id){it.id=id; done()} else none();
 });
 function build(){
-  W=generate(S); save("fbw-workout",W); render();
+  W=genQuick(S); save("fbw-workout",W); render();
   plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
 document.getElementById("build").onclick=build;
+W=loadW();
 render();
 
 /* ---------- Follow-along ---------- */
@@ -573,15 +604,15 @@ const FEEL={too_short:"Too short",about_right:"About right",too_long:"Too long"}
 // The workout in the shape api.save_workout expects: blocks in order, each move with its
 // prescription, time estimate and the equipment option it uses.
 function toDB(w,name){
-  const lv=w.settings.level, R=RESTS[lv-1], kit=kitOf(w.blocks.flatMap(b=>b.items.map(i=>i.id)),w.settings).have;
+  const kit=kitOf(blockIds(w),w.settings).have;
   const gear=id=>reqs(BY[id]).map(r=>{const a=r.split("|");return a.find(q=>kit.has(q))||a.find(q=>w.settings.equip.includes(q))||a[0]});
   const timed=(id,d)=>({id,pat:BY[id].p,prescription:`${holdSecs(id,d)}s`,hold:holdSecs(id,d),est:holdSecs(id,d),equipment:gear(id)});
-  const set=it=>{const p=reps(it.id,lv),m=/^(\d+)s( each side)?$/.exec(p||"");return {id:it.id,pat:it.pat,prescription:p,hold:m?+m[1]:null,est:SET_SECS,equipment:gear(it.id)}};
+  const set=it=>{const p=reps(it.id,lvOf(it,w)),m=/^(\d+)s( each side)?$/.exec(p||"");return {id:it.id,pat:it.pat,prescription:p,hold:m?+m[1]:null,est:SET_SECS,equipment:gear(it.id)}};
   return {name,estimated_seconds:estimateSecs(w),settings:w.settings,blocks:[
-    {kind:"warmup",name:"Warm-up",rounds:1,items:w.warm.map(id=>timed(id,WARM_SECS))},
-    ...w.blocks.map(b=>({kind:b.course?"course":b.name==="Grip finisher"?"grip":"main",name:b.name,rounds:b.rounds,
-      rest_ex:b.course?0:R.ex,rest_round:b.course?90:R.round,items:b.items.map(set)})),
-    {kind:"cooldown",name:"Cool-down",rounds:1,items:w.cool.map(id=>timed(id,COOL_SECS))}]};
+    {kind:"warmup",name:"Warm-up",rounds:1,items:filled(w.warm).map(({id})=>timed(id,WARM_SECS))},
+    ...w.blocks.filter(b=>filled(b.items).length).map(b=>{const R=restOf(b,w),course=b.kind==="course";
+      return {kind:b.kind,name:b.name,rounds:b.rounds,rest_ex:course?0:R.ex,rest_round:course?90:R.round,items:filled(b.items).map(set)}}),
+    {kind:"cooldown",name:"Cool-down",rounds:1,items:filled(w.cool).map(({id})=>timed(id,COOL_SECS))}]};
 }
 
 function saveHTML(){
@@ -638,7 +669,7 @@ savedEl.addEventListener("click",async e=>{
     }
   }catch(x){alert(x.message)}
 });
-const fromDB=w=>({settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions});
+const fromDB=w=>upgrade({settings:w.settings,warm:w.warm,cool:w.cool,blocks:w.blocks,savedId:w.id,name:w.name,sessions:w.sessions});
 async function openSaved(id){
   W=fromDB(await call("GET",`workouts/${id}`));
   save("fbw-workout",W); render();
@@ -683,3 +714,7 @@ function openEval(id,name,estSecs){
 
 // Turn the database features on only when the local server's API answers.
 call("GET","workouts").then(()=>{API.on=true; loadSaved(); render()}).catch(()=>{});
+
+// Internals for the front-end tests (tests/frontend/cases.js); nothing in the app uses this.
+window.FBW={DATA,BY,LIB,RESTS,TEMPL,WARM_ROLES,COOL_ROLES,ok,pick,kitOf,genQuick,upgrade,loadW,lvOf,restOf,filled,idsOf,blockIds,
+  sequence,estimate,equipList,toDB,render,get W(){return W},set W(v){W=v}};

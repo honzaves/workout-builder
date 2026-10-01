@@ -26,7 +26,7 @@ Decisions from the review questions:
 ## 2. Assumptions to confirm
 
 - **A1, Mix: four exercises per block.** The requirement says 1 → 2 → 3 → 4, so a Mix block has four slots: the block's three `TEMPL` patterns plus one extra pattern (rotating through `core`, `plyoL`, `push`, `pull`, skipping ones already in the block). Exercises run in level order, so "plyo moves come first" no longer applies in this mode.
-- **A2, Mix: who gets level 4.** Level 4 is thinner than the other levels for some patterns (see §5.2), e.g. pull has a single bodyweight solo exercise at level 4. Levels are assigned to patterns *after* checking what's available with the user's equipment: level 4 goes to the pattern with the most level-4 candidates, and so on down. If no exercise exists at the exact level, fall back to the nearest level below, then above. The on-screen level chip shows the real level.
+- **A2, Mix: who gets level 4.** Even after the 37 new level-4 moves, level 4 is thinner than the other levels (see §5.2), e.g. pull has a single bodyweight solo exercise at level 4. Levels are assigned to patterns *after* checking what's available with the user's equipment: level 4 goes to the pattern with the most level-4 candidates, and so on down. If no exercise exists at the exact level, fall back to the nearest level below, then above. The on-screen level chip shows the real level.
 - **A3, Mix: the Level control** sets rest times and rounds per block only (it no longer filters exercises). Each exercise shows the reps for its own level.
 - **A4, Template: rest times.** Each block has rounds (1–6, default 3) and a rest setting with four presets taken from the `level` table (Beginner 30 s/90 s … Beast 10 s/60 s), default Intermediate. The obstacle course keeps its 60–90 s between runs.
 - **A5, Template: auto-fill level.** "Fill this slot" and "Fill the rest" need a level. In Template mode the Level control is relabelled **Auto-fill level** and is used only by the automatic buttons; hand-picked exercises get their level in the picker.
@@ -140,7 +140,7 @@ A panel that slides up from the bottom (full screen on phones), used by **Choose
 - **Search** matches the name, then the steps; it works across all categories of the section.
 - **Rows** show the first drawing of the exercise (`FIG.of(id, 64)`), name, minimum level, equipment and tags. Moves already in the workout are marked "in use".
 - **Tapping a row** opens a short confirmation inside the panel: the drawing strip, level buttons (A9) with the reps for each, and **Use this**. Tapping outside the panel or × closes it without changes.
-- The list is built lazily (first 40 rows, more on scroll) so 1000 drawings are never rendered at once.
+- The list is built lazily (first 40 rows, more on scroll) so the catalogue's 1000+ drawings are never rendered at once.
 
 ## 5. Generator changes
 
@@ -164,6 +164,8 @@ Level coverage (active exercises, any equipment / bodyweight solo; level 4 updat
 | push | 31 / 2 | 40 / 6 | 39 / 7 | 18 / 7 |
 | pull | 30 / 3 | 24 / 1 | 23 / 1 | 13 / 1 |
 | core | 50 / 7 | 99 / 7 | 58 / 4 | 19 / 5 |
+
+Level 4 was the gap when this design was written (lunge had 1 level-4 exercise, plyo upper 2). On 2026-10-01, 37 level-4 moves were added from `docs/level4-ideas.md` to close it: lunge 1 → 9, plyo upper 2 → 9, squat 6 → 13, hinge 5 → 10, plyo lower 10 → 20, push 14 → 18, pull 12 → 13, core 13 → 19, course 2 → 7, grip 1 → 4. Every pattern now has level-4 options with common equipment. The remaining thin spots are bodyweight solo at level 4: pull (1) and hinge (2), and at level 3: hinge, lunge and pull (1 each). With bodyweight only, Mix will hit the level fallback (A2) there.
 
 `validate.py` gets a warning (not an error) when a pattern used in `TEMPL` has no bodyweight solo exercise at some level, so gaps show up as the catalogue grows.
 

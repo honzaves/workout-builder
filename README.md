@@ -78,6 +78,8 @@ pytest
 
 The tests check the exercises in the database and the validator, that the build produces a working single file from the database, that seeding from the JSON snapshot loads every exercise, that nothing runs on a missing or empty database, that bad drawings are rejected without writing anything, and that saving, listing, evaluating and deleting work through the HTTP API. The database tests run on temporary copies, never on `db/workouts.db`.
 
+`tests/test_frontend.py` also tests the app itself: it runs the cases in `tests/frontend/cases.js` against the built file in headless Chrome (generator rules, the workout format, older stored workouts, the follow-along sequence, rendering, Swap) and saves a generated workout through the API. It is skipped when Chrome or Chromium isn't installed; set `CHROME=/path/to/chrome` to use one that isn't found automatically.
+
 ## Project layout
 
 ```
@@ -99,7 +101,7 @@ workout-builder/
 │   ├── figures.py            movement drawings: load them into the database, build review pages
 │   ├── build.py              bundles web/ and the catalogue into dist/workout-builder.html
 │   └── validate.py           checks the exercises in the database for mistakes
-├── tests/                    pytest: data and build (test_data.py), database and API (test_db.py)
+├── tests/                    pytest: data and build (test_data.py), database and API (test_db.py), app logic in headless Chrome (test_frontend.py + frontend/cases.js)
 ├── docs/                     database design (database.md), feature ideas (TODO.md)
 └── dist/                     build output (git-ignored)
 ```
@@ -178,7 +180,7 @@ The generator is in `web/js/app.js`:
 - Rest times and rounds per block come from the `level` table (`RESTS` in `app.js`).
 - `pick()` chooses exercises. Its weights prefer moves at your level and moves that use equipment already in the workout's kit.
 - Selected equipment is a menu, not a checklist: each workout draws a small kit from it and reuses it. `KIT` sets the most equipment types per workout by number of blocks (2 for one block up to 6 for five or six). Bodyweight moves never count toward it.
-- `generate()` picks the obstacle course and grip finisher first (so blocks can reuse their equipment), then the blocks, and places combos and partner moves.
+- `genQuick()` picks the obstacle course and grip finisher first (so blocks can reuse their equipment), then the blocks, and places combos and partner moves.
 - The warm-up and cool-down draw from roles in the `exercise_phase_role` table. The warm-up takes one pulse raiser (`pulse`), one full-body flow (`flow`), two mobility drills (`mob`) and a second pulse raiser. The cool-down takes two short stretches (`stretch`), some yin holds (`yin`; how many depends on the number of blocks, set in `YIN`) and one calm finish (`calm`). To use a new warm-up or cool-down move, give it a role: `INSERT INTO exercise_phase_role SELECT e.exercise_id, r.role_id FROM exercise e, phase_role r WHERE e.slug = 'my-move' AND r.code = 'mob';`
 
 ## Sharing it
