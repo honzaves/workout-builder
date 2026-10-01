@@ -5,12 +5,12 @@
 /* ---------- Tokens ----------
    Colour roles: --bg page, --surface cards, --surface-2 tiles/hover, --ink text, --muted secondary text, --line hairlines.
    Semantic split (timeline, tags, follow-along): --strength strength moves and the main accent, --jump plyometrics,
-   --soft warm-up and cool-down. Drawings: --fig-far, --fig2-far, --prop-fill, --arrow, --floor. */
+   --soft warm-up and cool-down. Drawings: --partner, --fig-far, --fig2-far, --prop-fill, --arrow, --floor. */
 :root{
   --bg:#F4F5F7; --surface:#FFFFFF; --surface-2:#ECEEF1; --ink:#15181C; --muted:#59616A; --line:#DFE2E6; --line-strong:#868E97;
-  --strength:#2856C7; --on-strength:#FFFFFF; --strength-soft:#E7EDFB;
-  --jump:#F0B030; --jump-ink:#3A2700; --soft:#8A929B; --focus:#2856C7; --danger:#B3261E; --star:#9A6200;
-  --fig-far:#A0A8B0; --fig2-far:#A3B7E8; --prop-fill:#E7EAEE; --arrow:#B26B00; --floor:#E3E6EA;
+  --strength:#2E343B; --on-strength:#FFFFFF; --strength-soft:#E9EBEE;
+  --jump:#E8620F; --jump-ink:#2B0F00; --soft:#8A929B; --focus:#2E343B; --danger:#B3261E; --star:#B4470A;
+  --partner:#3D6FB6; --fig-far:#A0A8B0; --fig2-far:#A9C0E3; --prop-fill:#E7EAEE; --arrow:#C2510F; --floor:#E3E6EA;
   --shadow:0 1px 2px rgba(16,20,24,.06),0 4px 16px rgba(16,20,24,.06); --shadow-lg:0 12px 40px rgba(16,20,24,.18);
   --scrim:rgba(10,12,16,.5);
 
@@ -29,17 +29,17 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0E1013; --surface:#16191D; --surface-2:#1E2227; --ink:#ECEEF0; --muted:#9CA4AD; --line:#262B31; --line-strong:#646C75;
-    --strength:#86A8FF; --on-strength:#0A1330; --strength-soft:#1A2440;
-    --jump:#F4BF4A; --jump-ink:#2A1C00; --soft:#5F6771; --focus:#86A8FF; --danger:#F2B8B5; --star:#F4BF4A;
-    --fig-far:#5E6770; --fig2-far:#3F5A99; --prop-fill:#252A30; --arrow:#F4BF4A; --floor:#1C2025;
+    --strength:#D9DDE2; --on-strength:#0E1013; --strength-soft:#23272C;
+    --jump:#FF8A3D; --jump-ink:#2B0F00; --soft:#5F6771; --focus:#D9DDE2; --danger:#F2B8B5; --star:#FF8A3D;
+    --partner:#86AAE6; --fig-far:#5E6770; --fig2-far:#3A5680; --prop-fill:#252A30; --arrow:#FF8A3D; --floor:#1C2025;
     --shadow:none; --shadow-lg:0 12px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
   --bg:#0E1013; --surface:#16191D; --surface-2:#1E2227; --ink:#ECEEF0; --muted:#9CA4AD; --line:#262B31; --line-strong:#646C75;
-  --strength:#86A8FF; --on-strength:#0A1330; --strength-soft:#1A2440;
-  --jump:#F4BF4A; --jump-ink:#2A1C00; --soft:#5F6771; --focus:#86A8FF; --danger:#F2B8B5; --star:#F4BF4A;
-  --fig-far:#5E6770; --fig2-far:#3F5A99; --prop-fill:#252A30; --arrow:#F4BF4A; --floor:#1C2025;
+  --strength:#D9DDE2; --on-strength:#0E1013; --strength-soft:#23272C;
+  --jump:#FF8A3D; --jump-ink:#2B0F00; --soft:#5F6771; --focus:#D9DDE2; --danger:#F2B8B5; --star:#FF8A3D;
+  --partner:#86AAE6; --fig-far:#5E6770; --fig2-far:#3A5680; --prop-fill:#252A30; --arrow:#FF8A3D; --floor:#1C2025;
   --shadow:none; --shadow-lg:0 12px 40px rgba(0,0,0,.5); --scrim:rgba(0,0,0,.6);
 }
 
@@ -57,8 +57,7 @@ button:disabled{cursor:default}
 .ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .ic .fill,symbol .fill{fill:currentColor;stroke:none}
 #i-play path,#i-star path{fill:currentColor;stroke:none}
-.logo{width:28px;height:28px;fill:var(--ink);flex:none}
-.logo .lg-top,#i-logo .lg-top{fill:var(--jump)}
+.logo{width:30px;height:30px;flex:none}
 .num{font-variant-numeric:tabular-nums}
 
 /* buttons: .primary (accent fill), .secondary (outline), .ghost (no border), size .sm */
@@ -424,13 +423,13 @@ details.mv{border-top:1px solid var(--line);position:relative}
 .tins{display:flex;flex-wrap:wrap;gap:6px;margin:calc(-1 * var(--s5)) 0 var(--s6);padding:8px 0;border-top:1px dashed var(--line-strong);border-bottom:1px dashed var(--line-strong);justify-content:center}
 .tins .tbtn{background:transparent;color:var(--muted);font-size:var(--fs-xs)}
 
-/* ---------- Movement drawings (FIG in app.js). Figure: --ink near side, --fig-far far side, --strength partner. ---------- */
+/* ---------- Movement drawings (FIG in app.js). Figure: --ink near side, --fig-far far side, --partner partner. ---------- */
 .fg{display:block;width:100%;height:auto}
 .fg-limb,.fg-torso,.fg-eqs,.fg-arr,.fg-guide,.fg-hi,.fg-strap{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .fg-limb{stroke-width:7}
 .fg-torso{stroke-width:12}
-.fg-n1{stroke:var(--ink)} .fg-f1{stroke:var(--fig-far)} .fg-n2{stroke:var(--strength)} .fg-f2{stroke:var(--fig2-far)}
-.fg-head.fg-n1,.fg-me{fill:var(--ink);stroke:none} .fg-head.fg-n2{fill:var(--strength);stroke:none}
+.fg-n1{stroke:var(--ink)} .fg-f1{stroke:var(--fig-far)} .fg-n2{stroke:var(--partner)} .fg-f2{stroke:var(--fig2-far)}
+.fg-head.fg-n1,.fg-me{fill:var(--ink);stroke:none} .fg-head.fg-n2{fill:var(--partner);stroke:none}
 .fg-hi{stroke:var(--jump);stroke-width:17;opacity:.5}
 .fg-ghost{opacity:.2}
 .fg-eq{fill:var(--prop-fill);stroke:var(--muted);stroke-width:2.5;stroke-linejoin:round}
@@ -457,8 +456,8 @@ details.mv{border-top:1px solid var(--line);position:relative}
 @media print{
   :root,:root[data-theme="dark"],:root:not([data-theme="light"]){
     --bg:#FFFFFF; --surface:#FFFFFF; --ink:#000000; --muted:#444B50; --line:#BFC6C3; --line-strong:#9AA1A8;
-    --strength:#2856C7; --jump:#F0B030; --jump-ink:#3A2700; --soft:#C3CAD2;
-    --fig-far:#A0A8B0; --fig2-far:#A3B7E8; --prop-fill:#E7EAEE; --arrow:#B26B00; --floor:#E3E6EA;
+    --strength:#2E343B; --jump:#E8620F; --jump-ink:#2B0F00; --soft:#8A929B; --partner:#3D6FB6;
+    --fig-far:#A0A8B0; --fig2-far:#A9C0E3; --prop-fill:#E7EAEE; --arrow:#C2510F; --floor:#E3E6EA;
   }
   @page{margin:14mm 12mm}
   body.printing>*:not(.printsheet){display:none!important}
