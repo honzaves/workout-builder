@@ -7,6 +7,8 @@ const API={on:false};
 const FIELD_MAP={id:"id",name:"n",pattern:"p",also_pattern:"p2",level:"l",equipment:"e",reps:"r",steps:"s",cue:"c",avoid:"x",combo:"cb",slow_to_fast:"ct",partner:"pt",sprint:"sp",secs:"t",switch_sides:"sw",retired:"rt"};
 const LIB = DATA.exercises.map(x=>{const o={};for(const[k,v]of Object.entries(x)){if(FIELD_MAP[k])o[FIELD_MAP[k]]=v;}return o;});
 const BY = Object.fromEntries(LIB.map(x=>[x.id,x]));
+// An icon from the sprite in index.html; it takes the text colour.
+const ic=n=>`<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
 /* ---------- Level and equipment buttons (from data) ---------- */
 document.querySelector('[data-key="level"]').innerHTML=DATA.levels.map(l=>`<button data-v="${l.id}">${l.name}</button>`).join("");
@@ -38,13 +40,23 @@ document.querySelectorAll(".seg").forEach(g=>{
   sync();
 });
 // Template mode hides the generator-only settings and relabels the ones it uses differently.
-const MODE_LABELS={mix:{"l-level":"Level (sets rest and rounds; every block runs from level 1 to level 4)"},template:{"l-time":"Exercise blocks to start with (add or remove them later)","l-level":"Auto-fill level (used by the Auto buttons)",
+const MODE_LABELS={mix:{"l-level":"Level<small>sets rest and rounds; every block runs from level 1 to level 4</small>"},template:{"l-time":"Exercise blocks to start with<small>add or remove them later</small>","l-level":"Auto-fill level<small>used by the Auto buttons</small>",
   "l-oc":"Start with an obstacle course","l-grip":"Start with a grip finisher","build":"Create template"}};
 function syncMode(){
   document.querySelectorAll("[data-not]").forEach(f=>f.hidden=f.dataset.not===S.mode);
-  Object.keys(MODE_LABELS.template).forEach(id=>{const el=document.getElementById(id); el.dataset.orig??=el.textContent;
-    el.textContent=(MODE_LABELS[S.mode]||{})[id]||el.dataset.orig});
+  Object.keys(MODE_LABELS.template).forEach(id=>{const el=document.getElementById(id); el.dataset.orig??=el.innerHTML;
+    el.innerHTML=(MODE_LABELS[S.mode]||{})[id]||el.dataset.orig});
+  syncSum();
 }
+// Below 1024px the settings fold away once a workout is built; the header then shows a one-line summary.
+const setupEl=document.getElementById("setup"), setupBtn=document.getElementById("setupToggle"), narrow=matchMedia("(max-width:1023px)");
+function syncSum(){
+  const m={quick:"Generated",mix:"Levels 1 to 4",template:"Template"}[S.mode], lv=S.mode==="template"?"":` · ${(DATA.levels.find(l=>l.id===S.level)||{}).name}`;
+  document.getElementById("setupSum").textContent=`${m}${lv} · ${S.blocks} ${S.blocks===1?"block":"blocks"} · ${S.equip.length?`${S.equip.length} equipment`:"bodyweight"}`;
+}
+function fold(on){setupEl.classList.toggle("folded",on); setupBtn.setAttribute("aria-expanded",!on); setupBtn.querySelector("span").textContent=on?"Edit":"Hide"}
+setupBtn.onclick=()=>fold(!setupEl.classList.contains("folded"));
+document.getElementById("setupBody").addEventListener("click",()=>setTimeout(syncSum));
 syncMode();
 
 const ALL_EQ=[...document.querySelectorAll('[data-key="equip"] button')].map(b=>b.dataset.v);
@@ -495,18 +507,23 @@ const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120
 const figsHTML=(id,px)=>FIG.has(id)?`<div class="figs">${FIG.of(id,px).map(f=>`<figure${f.top?' class="wide"':""}>${f.svg}<figcaption>${f.steps[0]===f.steps[1]?`Step ${f.steps[0]}`:`Steps ${f.steps[0]}–${f.steps[1]}`}</figcaption></figure>`).join("")}</div>`:"";
 function howHTML(ex){
   return `<div class="how">${figsHTML(ex.id,150)}<ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
-  <p><b>Cue:</b> ${ex.c}</p>${ex.x?`<p><b>Avoid:</b> ${ex.x}</p>`:""}</div>`;
+  <p class="cue"><b>Cue</b> ${ex.c}</p>${ex.x?`<p class="avoid"><b>Avoid</b> ${ex.x}</p>`:""}</div>`;
 }
+// A move row: name and prescription; tags and buttons below it (beside it on wide lists); the instructions when opened.
 function row(id,meta,swappable,where,extra=""){
   const ex=BY[id], j=isJump(id);
-  return `<details class="${j?"jumpbar":""}"><summary>
+  return `<details class="mv${j?" jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
-    ${tagsHTML(ex)}
-    ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">Choose</button>`:""}
-    ${extra}<span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
+    <span class="rfoot"><span class="rtags">${tagsHTML(ex)}</span><span class="racts">${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">${ic("swap")}<span>Swap</span></button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">${ic("choose")}<span>Choose</span></button>`:""}${extra}</span></span>
+    <span class="chev" aria-hidden="true">${ic("chev")}</span></summary>${howHTML(ex)}</details>`;
 }
+// A section heading with a short fact beside it (rounds, number of moves).
+const secHead=(title,meta="")=>`<div class="sechead"><h2>${title}</h2>${meta?`<span class="secmeta">${meta}</span>`:""}</div>`;
+const nMoves=a=>{const n=filled(a).length; return `${n} ${n===1?"move":"moves"}`};
 let TPL_NOTE=""; // a one-off message for the template header, e.g. after Fill the rest
+const brief=document.getElementById("brief"), emptyEl=document.getElementById("empty");
 function render(){
+  emptyEl.hidden=!!W; brief.hidden=!W;
   if(!W){plan.hidden=true;return}
   const seq=sequence(W), tpl=W.mode==="template";
   const jumps=blockIds(W).filter(isJump).length;
@@ -519,26 +536,29 @@ function render(){
   strip+=`<span class="w" style="flex:${filled(W.cool).reduce((a,x)=>a+holdSecs(x.id,COOL_SECS),0)}"></span>`;
 
   const total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
-  let h=`<div class="timebox"><p class="hard"><b>About ${total-wm-cm} min</b> of hard work</p>
-  <p>Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down, so set aside about ${total} minutes in total.</p></div>
+  // The overview (#brief): a rail beside the workout on wide screens, above it otherwise.
+  const sv=saveHTML();
+  brief.innerHTML=`<div class="card timebox"><p class="eyebrow">Hard work</p><p class="hard"><b>${total-wm-cm}</b>min</p>
+  <p class="sub">Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down: about ${total} minutes in total.</p>
   <div class="strip" aria-hidden="true">${strip}</div>
-  <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
-  <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
-  ${tpl?tplHead():`<div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button><button id="print">Print</button></div>`}
-  ${saveHTML()}
-  <section class="sec"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
+  <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up, cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
+  <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p></div>
+  ${tpl?"":`<div class="actions"><button class="go" id="start">${ic("play")}Start workout</button><button id="again">${ic("redo")}New workout</button><button id="print">${ic("print")}Print</button></div>`}
+  ${sv?`<div class="card">${sv}</div>`:""}
+  <section class="card"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
   ${(()=>{const g=equipList(W);return g.length?`<ul class="gear">${g.map(([lab,uses])=>`<li><label><input type="checkbox"><span><b>${lab}</b><small>${[...uses].join(", ")}</small></span></label></li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`})()}
-  </section>
-  ${evalsHTML()}`;
-  if(tpl) h+=tplSections();
+  </section>`;
+  // A template's status line and actions sit on top of the editor.
+  let h=evalsHTML();
+  if(tpl) h+=`<div class="thead">${tplHead()}</div>`+tplSections();
   else{
-  h+=`<section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
+  h+=`<section class="sec k-warm">${secHead("Warm-up",nMoves(W.warm))}<p class="note">One after another, no rest.</p>
   <div class="list">${W.warm.map((x,i)=>x.id?row(x.id,holdLabel(x.id,WARM_SECS),true,`w-${i}`):"").join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
-    h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
+    h+=`<section class="sec k-${b.kind}">${secHead(b.name,b.kind==="course"?nMoves(b.items):`${b.rounds} rounds`)}<p class="note">${blockNote(b,W)}</p>
     <div class="list">${b.items.map((it,ii)=>it.id?row(it.id,reps(it.id,lvOf(it,W))+(it.lv?` · ${LEVEL_NAMES[it.lv-1]}`:""),true,`${bi}-${ii}`):"").join("")}</div></section>`;
   });
-  h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
+  h+=`<section class="sec k-cool">${secHead("Cool-down",nMoves(W.cool))}<p class="note">${COOL_NOTE}</p>
   <div class="list">${W.cool.map((x,i)=>x.id?row(x.id,holdLabel(x.id,COOL_SECS),true,`c-${i}`):"").join("")}</div></section>
   <p class="foot">${FOOT}</p>`;
   }
@@ -593,7 +613,7 @@ plan.addEventListener("click",e=>{
   if(W.mode==="template") tplSync();
   const where=b.dataset.where, ph=where.split("-");
   const done=()=>changed(`.swap[data-where="${where}"]`);
-  const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
+  const none=()=>{const t=b.querySelector("span"); b.classList.add("says"); t.textContent="No other options"; setTimeout(()=>{t.textContent="Swap"; b.classList.remove("says")},1500)};
   // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
   if(ph[0]==="w"||ph[0]==="c"){
     const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], ss={partner:"off",...genSettings(W)};
@@ -817,12 +837,14 @@ function keepsWork(){
 function build(mode=S.mode){
   if(!keepsWork()) return;
   W=mode==="template"?genTemplate(S):mode==="mix"?genMix(S):genQuick(S); save("fbw-workout",W); render();
-  plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  if(narrow.matches) fold(true);
+  (narrow.matches?setupEl:plan).scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
 document.getElementById("build").onclick=()=>build();
 plan.addEventListener("change",e=>{if(e.target.dataset.act==="rest") tplRest(e.target)});
 W=loadW();
 render();
+if(W&&narrow.matches) fold(true);
 
 /* ---------- Follow-along ---------- */
 const F={seq:[],i:0,end:0,left:0,half:null,done:null,paused:false,t:null,lock:null};
@@ -995,7 +1017,7 @@ async function loadSaved(){
   try{[list,drafts]=await Promise.all([call("GET","workouts"),call("GET","drafts")])}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
   savedEl.hidden=false;
   const count=[list.length&&`${list.length} saved`,drafts.length&&`${drafts.length} ${drafts.length===1?"draft":"drafts"}`].filter(Boolean).join(", ");
-  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
+  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true">${ic("chev")}</span></summary>
     ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li><div class="nm">${esc(d.name)}<small>Draft · changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
       <div class="rowbtns"><button data-opendraft="${d.id}">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del">Delete</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
       <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
