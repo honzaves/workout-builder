@@ -98,7 +98,7 @@ workout-builder/
 ├── web/                      the app
 │   ├── index.html            page structure and settings controls
 │   ├── css/styles.css        styling, light and dark themes
-│   ├── fonts/                Barlow and Barlow Condensed (SIL Open Font License, see OFL.txt)
+│   ├── fonts/                Inter, one variable-weight file (SIL Open Font License, see OFL.txt)
 │   └── js/app.js             generator, rendering, follow-along timer, saving and evaluating
 ├── db/
 │   ├── schema.sql            SQLite schema: catalogue, drawings, workouts, sessions, ratings, evaluations, comments

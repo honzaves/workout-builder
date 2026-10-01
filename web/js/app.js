@@ -7,6 +7,8 @@ const API={on:false};
 const FIELD_MAP={id:"id",name:"n",pattern:"p",also_pattern:"p2",level:"l",equipment:"e",reps:"r",steps:"s",cue:"c",avoid:"x",combo:"cb",slow_to_fast:"ct",partner:"pt",sprint:"sp",secs:"t",switch_sides:"sw",retired:"rt"};
 const LIB = DATA.exercises.map(x=>{const o={};for(const[k,v]of Object.entries(x)){if(FIELD_MAP[k])o[FIELD_MAP[k]]=v;}return o;});
 const BY = Object.fromEntries(LIB.map(x=>[x.id,x]));
+// An icon from the sprite in index.html; it takes the text colour.
+const ic=n=>`<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
 /* ---------- Level and equipment buttons (from data) ---------- */
 document.querySelector('[data-key="level"]').innerHTML=DATA.levels.map(l=>`<button data-v="${l.id}">${l.name}</button>`).join("");
@@ -38,13 +40,23 @@ document.querySelectorAll(".seg").forEach(g=>{
   sync();
 });
 // Template mode hides the generator-only settings and relabels the ones it uses differently.
-const MODE_LABELS={mix:{"l-level":"Level (sets rest and rounds; every block runs from level 1 to level 4)"},template:{"l-time":"Exercise blocks to start with (add or remove them later)","l-level":"Auto-fill level (used by the Auto buttons)",
+const MODE_LABELS={mix:{"l-level":"Level<small>sets rest and rounds; every block runs from level 1 to level 4</small>"},template:{"l-time":"Exercise blocks to start with<small>add or remove them later</small>","l-level":"Auto-fill level<small>used by the Auto buttons</small>",
   "l-oc":"Start with an obstacle course","l-grip":"Start with a grip finisher","build":"Create template"}};
 function syncMode(){
   document.querySelectorAll("[data-not]").forEach(f=>f.hidden=f.dataset.not===S.mode);
-  Object.keys(MODE_LABELS.template).forEach(id=>{const el=document.getElementById(id); el.dataset.orig??=el.textContent;
-    el.textContent=(MODE_LABELS[S.mode]||{})[id]||el.dataset.orig});
+  Object.keys(MODE_LABELS.template).forEach(id=>{const el=document.getElementById(id); el.dataset.orig??=el.innerHTML;
+    el.innerHTML=(MODE_LABELS[S.mode]||{})[id]||el.dataset.orig});
+  syncSum();
 }
+// Below 1024px the settings fold away once a workout is built; the header then shows a one-line summary.
+const setupEl=document.getElementById("setup"), setupBtn=document.getElementById("setupToggle"), narrow=matchMedia("(max-width:1023px)");
+function syncSum(){
+  const m={quick:"Generated",mix:"Levels 1 to 4",template:"Template"}[S.mode], lv=S.mode==="template"?"":` · ${(DATA.levels.find(l=>l.id===S.level)||{}).name}`;
+  document.getElementById("setupSum").textContent=`${m}${lv} · ${S.blocks} ${S.blocks===1?"block":"blocks"} · ${S.equip.length?`${S.equip.length} equipment`:"bodyweight"}`;
+}
+function fold(on){setupEl.classList.toggle("folded",on); setupBtn.setAttribute("aria-expanded",!on); setupBtn.querySelector("span").textContent=on?"Edit":"Hide"}
+setupBtn.onclick=()=>fold(!setupEl.classList.contains("folded"));
+document.getElementById("setupBody").addEventListener("click",()=>setTimeout(syncSum));
 syncMode();
 
 const ALL_EQ=[...document.querySelectorAll('[data-key="equip"] button')].map(b=>b.dataset.v);
@@ -495,18 +507,23 @@ const tagsHTML=ex=>`${ex.pt?'<span class="tag cb">Partner</span>':""}${ex.t>=120
 const figsHTML=(id,px)=>FIG.has(id)?`<div class="figs">${FIG.of(id,px).map(f=>`<figure${f.top?' class="wide"':""}>${f.svg}<figcaption>${f.steps[0]===f.steps[1]?`Step ${f.steps[0]}`:`Steps ${f.steps[0]}–${f.steps[1]}`}</figcaption></figure>`).join("")}</div>`:"";
 function howHTML(ex){
   return `<div class="how">${figsHTML(ex.id,150)}<ol>${ex.s.map(t=>`<li>${t}</li>`).join("")}</ol>
-  <p><b>Cue:</b> ${ex.c}</p>${ex.x?`<p><b>Avoid:</b> ${ex.x}</p>`:""}</div>`;
+  <p class="cue"><b>Cue</b> ${ex.c}</p>${ex.x?`<p class="avoid"><b>Avoid</b> ${ex.x}</p>`:""}</div>`;
 }
+// A move row: name and prescription; tags and buttons below it (beside it on wide lists); the instructions when opened.
 function row(id,meta,swappable,where,extra=""){
   const ex=BY[id], j=isJump(id);
-  return `<details class="${j?"jumpbar":""}"><summary>
+  return `<details class="mv${j?" jumpbar":""}"><summary>
     <span class="nm">${ex.n}<small>${meta}</small></span>
-    ${tagsHTML(ex)}
-    ${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">Swap</button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">Choose</button>`:""}
-    ${extra}<span class="chev" aria-hidden="true"></span></summary>${howHTML(ex)}</details>`;
+    <span class="rfoot"><span class="rtags">${tagsHTML(ex)}</span><span class="racts">${swappable?`<button class="swap" data-where="${where}" aria-label="Swap ${ex.n} for a similar move">${ic("swap")}<span>Swap</span></button><button class="choose" data-choose="${where}" aria-label="Choose a move instead of ${ex.n}">${ic("choose")}<span>Choose</span></button>`:""}</span>${extra}</span>
+    <span class="chev" aria-hidden="true">${ic("chev")}</span></summary>${howHTML(ex)}</details>`;
 }
+// A section heading with a short fact beside it (rounds, number of moves).
+const secHead=(title,meta="")=>`<div class="sechead"><h2>${title}</h2>${meta?`<span class="secmeta">${meta}</span>`:""}</div>`;
+const nMoves=a=>{const n=filled(a).length; return `${n} ${n===1?"move":"moves"}`};
 let TPL_NOTE=""; // a one-off message for the template header, e.g. after Fill the rest
+const brief=document.getElementById("brief"), emptyEl=document.getElementById("empty");
 function render(){
+  emptyEl.hidden=!!W; brief.hidden=!W;
   if(!W){plan.hidden=true;return}
   const seq=sequence(W), tpl=W.mode==="template";
   const jumps=blockIds(W).filter(isJump).length;
@@ -519,26 +536,29 @@ function render(){
   strip+=`<span class="w" style="flex:${filled(W.cool).reduce((a,x)=>a+holdSecs(x.id,COOL_SECS),0)}"></span>`;
 
   const total=estimate(seq), wm=estimate(seq,s=>s.sec==="Warm-up"), cm=estimate(seq,s=>s.sec.startsWith("Cool-down"));
-  let h=`<div class="timebox"><p class="hard"><b>About ${total-wm-cm} min</b> of hard work</p>
-  <p>Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down, so set aside about ${total} minutes in total.</p></div>
+  // The overview (#brief): a rail beside the workout on wide screens, above it otherwise.
+  const sv=saveHTML();
+  brief.innerHTML=`<div class="card timebox"><p class="eyebrow">Hard work</p><p class="hard"><b>${total-wm-cm}</b>min</p>
+  <p class="sub">Plus ${an(wm)}-minute warm-up and ${an(cm)}-minute cool-down: about ${total} minutes in total.</p>
   <div class="strip" aria-hidden="true">${strip}</div>
-  <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up and cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
-  <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p>
-  ${tpl?tplHead():`<div class="actions"><button class="go" id="start">Start workout</button><button id="again">New workout</button><button id="print">Print</button></div>`}
-  ${saveHTML()}
-  <section class="sec"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
+  <div class="legend"><span><i style="background:var(--soft)"></i>Warm-up, cool-down</span><span><i style="background:var(--strength)"></i>Strength</span><span><i style="background:var(--jump)"></i>Plyometrics</span></div>
+  <p class="summary">${W.blocks.length} blocks, ${jumps} plyo ${jumps===1?"move":"moves"}.</p></div>
+  ${tpl?"":`<div class="actions"><button class="go" id="start">${ic("play")}Start workout</button><button id="again">${ic("redo")}New workout</button><button id="print">${ic("print")}Print</button></div>`}
+  ${sv?`<div class="card">${sv}</div>`:""}
+  <section class="card"><h2>What you'll need</h2><p class="note">Tick items off as you set up.${W.settings.partner==="on"?" Plus your partner.":""}</p>
   ${(()=>{const g=equipList(W);return g.length?`<ul class="gear">${g.map(([lab,uses])=>`<li><label><input type="checkbox"><span><b>${lab}</b><small>${[...uses].join(", ")}</small></span></label></li>`).join("")}</ul>`:`<p class="note">Nothing but some floor space.</p>`})()}
-  </section>
-  ${evalsHTML()}`;
-  if(tpl) h+=tplSections();
+  </section>`;
+  // A template's status line and actions sit on top of the editor.
+  let h=evalsHTML();
+  if(tpl) h+=`<div class="thead">${tplHead()}</div>`+tplSections();
   else{
-  h+=`<section class="sec"><h2>Warm-up</h2><p class="note">One after another, no rest.</p>
+  h+=`<section class="sec k-warm">${secHead("Warm-up",nMoves(W.warm))}<p class="note">One after another, no rest.</p>
   <div class="list">${W.warm.map((x,i)=>x.id?row(x.id,holdLabel(x.id,WARM_SECS),true,`w-${i}`):"").join("")}</div></section>`;
   W.blocks.forEach((b,bi)=>{
-    h+=`<section class="sec"><h2>${b.name}</h2><p class="note">${blockNote(b,W)}</p>
+    h+=`<section class="sec k-${b.kind}">${secHead(b.name,b.kind==="course"?nMoves(b.items):`${b.rounds} rounds`)}<p class="note">${blockNote(b,W)}</p>
     <div class="list">${b.items.map((it,ii)=>it.id?row(it.id,reps(it.id,lvOf(it,W))+(it.lv?` · ${LEVEL_NAMES[it.lv-1]}`:""),true,`${bi}-${ii}`):"").join("")}</div></section>`;
   });
-  h+=`<section class="sec"><h2>Cool-down</h2><p class="note">${COOL_NOTE}</p>
+  h+=`<section class="sec k-cool">${secHead("Cool-down",nMoves(W.cool))}<p class="note">${COOL_NOTE}</p>
   <div class="list">${W.cool.map((x,i)=>x.id?row(x.id,holdLabel(x.id,COOL_SECS),true,`c-${i}`):"").join("")}</div></section>
   <p class="foot">${FOOT}</p>`;
   }
@@ -593,7 +613,7 @@ plan.addEventListener("click",e=>{
   if(W.mode==="template") tplSync();
   const where=b.dataset.where, ph=where.split("-");
   const done=()=>changed(`.swap[data-where="${where}"]`);
-  const none=()=>{b.textContent="No other options"; setTimeout(()=>b.textContent="Swap",1500)};
+  const none=()=>{const t=b.querySelector("span"); b.classList.add("says"); t.textContent="No other options"; setTimeout(()=>{t.textContent="Swap"; b.classList.remove("says")},1500)};
   // Warm-up / cool-down: another move with the same role (pulse, flow, mob / stretch, yin, calm), else any of that phase.
   if(ph[0]==="w"||ph[0]==="c"){
     const list=ph[0]==="w"?W.warm:W.cool, i=+ph[1], ss={partner:"off",...genSettings(W)};
@@ -644,15 +664,17 @@ function pickPool(st){
 }
 const pickDlg=document.getElementById("pickDlg");
 let PK=null; // picker state while open
+// From 1024px the picker is a dialog with the list on the left and the chosen move's detail beside it (#pSide).
+const pickWide=matchMedia("(min-width:1024px)");
 // opts: {section, cat, lv, settings, used (ids already in the workout), onPick(id, lv, cat)}
 function openPicker(opts){
   PK={tags:[],q:"",shown:PICK_PAGE,detail:null,...opts};
-  pickDlg.innerHTML=`<div class="pwrap"><div class="phead"><h2 id="pickTitle">${PICK_SECTIONS[PK.section].title}</h2><button class="x" id="pClose" aria-label="Close">×</button></div>
-    <div class="pfilters"><input class="psearch" id="pQ" type="search" placeholder="Search names and steps" aria-label="Search" autocomplete="off"><div id="pChips"></div></div>
-    <div class="pbody" id="pBody"></div></div>`;
+  pickDlg.innerHTML=`<div class="pwrap"><div class="phead"><h2 id="pickTitle">${PICK_SECTIONS[PK.section].title}</h2><button class="x" id="pClose" aria-label="Close">${ic("x")}</button></div>
+    <div class="pfilters"><label class="psearchwrap">${ic("search")}<input class="psearch" id="pQ" type="search" placeholder="Search names and steps" aria-label="Search" autocomplete="off"></label><div id="pChips"></div></div>
+    <div class="pmain"><div class="pbody" id="pBody"></div><div class="pside" id="pSide"><p class="pempty">Pick a move to see its drawings, steps and levels.</p></div></div></div>`;
   document.getElementById("pClose").onclick=()=>pickDlg.close();
-  document.getElementById("pQ").oninput=e=>{PK.q=e.target.value; PK.shown=PICK_PAGE; PK.detail=null; pickList()};
-  document.getElementById("pBody").onscroll=e=>{const b=e.target; if(!PK.detail&&b.scrollTop+b.clientHeight>b.scrollHeight-300) pickMore()};
+  document.getElementById("pQ").oninput=e=>{PK.q=e.target.value; PK.shown=PICK_PAGE; if(!pickWide.matches) PK.detail=null; pickList()};
+  document.getElementById("pBody").onscroll=e=>{const b=e.target; if((pickWide.matches||!PK.detail)&&b.scrollTop+b.clientHeight>b.scrollHeight-300) pickMore()};
   pickChips(); pickList();
   if(!pickDlg.open) pickDlg.showModal();
   document.getElementById("pQ").focus();
@@ -669,11 +691,12 @@ const pickMeta=x=>[phased(PK.section)?holdLabel(x.id,PK.section==="warm"?WARM_SE
   ...reqs(x).map(r=>r.split("|").map(a=>EQ_LABEL[a]||a).join(" or ")),...(reqs(x).length?[]:["bodyweight"])].join(" · ");
 function pickRow(id){
   const x=BY[id], f=FIG.has(id)?FIG.of(id,64)[0].svg:"";
-  return `<li><button class="prow" data-id="${id}"><span class="pthumb" aria-hidden="true">${f}</span>
+  return `<li><button class="prow" data-id="${id}"${PK.detail&&PK.detail.id===id?' aria-current="true"':""}><span class="pthumb" aria-hidden="true">${f}</span>
     <span class="nm">${x.n}<small>${pickMeta(x)}${PK.used.has(id)?' · <span class="pinuse">in use</span>':""}</small></span>${tagsHTML(x)}</button></li>`;
 }
 function pickList(){
   const body=document.getElementById("pBody"), ids=pickPool(PK);
+  pickDlg.querySelector(".pwrap").classList.remove("indetail");
   PK.ids=ids;
   body.innerHTML=`<p class="pcount" aria-live="polite">${ids.length} ${ids.length===1?"move":"moves"}${PK.q?` matching “${esc(PK.q)}”`:""}</p>`+
     (ids.length?`<ul class="plist">${ids.slice(0,PK.shown).map(pickRow).join("")}</ul>`:`<p class="note">Nothing fits. Clear the search or a filter, or select more equipment.</p>`)+
@@ -688,17 +711,20 @@ function pickMore(){
   if(PK.shown>=PK.ids.length) more.remove(); else more.textContent=`Show more (${PK.ids.length-PK.shown} left)`;
 }
 // The chosen move: drawings, cue and, for leveled moves, one button per level with its reps.
+// On phones and tablets the detail replaces the list (filters hidden); on wide screens it fills the side pane.
 function pickDetail(id){
-  const x=BY[id], body=document.getElementById("pBody");
+  const x=BY[id], wide=pickWide.matches, body=document.getElementById(wide?"pSide":"pBody");
   const lvs=phased(PK.section)?[]:x.r.map((r,i)=>r?i+1:0).filter(Boolean);
   PK.detail={id,lv:lvs.includes(PK.lv)?PK.lv:lvs.find(l=>l>=(PK.lv||1))||lvs[0]};
-  body.innerHTML=`<div class="pdetail"><button class="linkbtn" id="pBack">← All moves</button>
+  if(wide) pickDlg.querySelectorAll(".prow").forEach(b=>b.toggleAttribute("aria-current",b.dataset.id===id));
+  else pickDlg.querySelector(".pwrap").classList.add("indetail");
+  body.innerHTML=`<div class="pdetail"><button class="linkbtn pback" id="pBack">${ic("back")}All moves</button>
     <h3>${x.n}</h3><p class="ptags">${tagsHTML(x)}<small>${pickMeta(x)}</small></p>
-    ${figsHTML(id,150)}<p><b>Cue:</b> ${x.c}</p>
+    ${figsHTML(id,150)}<ol class="psteps">${x.s.map(t=>`<li>${t}</li>`).join("")}</ol><p class="pcue"><b>Cue</b> ${x.c}</p>
     ${lvs.length?`<p class="plab" id="pLvLab">Level</p><div class="seg plevels" role="group" aria-labelledby="pLvLab">${lvs.map(l=>`<button data-plv="${l}" aria-pressed="${l===PK.detail.lv}">${LEVEL_NAMES[l-1]}<small>${esc(x.r[l-1])}</small></button>`).join("")}</div>`:""}
-    <button class="puse" id="pUse">Use this</button></div>`;
+    <div class="pusebar"><button class="puse" id="pUse">${ic("check")}Use this</button></div></div>`;
   body.scrollTop=0;
-  document.getElementById("pBack").onclick=()=>{PK.detail=null; pickList()};
+  document.getElementById("pBack").onclick=()=>{PK.detail=null; if(wide){body.innerHTML=`<p class="pempty">Pick a move to see its drawings, steps and levels.</p>`; pickDlg.querySelectorAll(".prow[aria-current]").forEach(b=>b.removeAttribute("aria-current"))} else pickList()};
   document.getElementById("pUse").onclick=()=>{const {id,lv}=PK.detail, cb=PK.onPick, cat=PK.cat; pickDlg.close(); cb(id,lv,cat)};
   document.getElementById("pUse").focus();
 }
@@ -738,12 +764,14 @@ function chooseFor(where){
 // Auto-fill and the picker use the settings panel as it is now (level = auto-fill level, equipment, who's training).
 const PAT_LABEL=Object.fromEntries([...PICK_SECTIONS.main.cats,...PICK_SECTIONS.warm.cats,...PICK_SECTIONS.cool.cats,["course","Obstacle course"],["grip","Grip"]]);
 function tplSync(){W.settings={...W.settings,level:S.level,equip:[...S.equip],partner:S.partner}}
-const tbtn=(act,label,attrs="",aria="")=>`<button type="button" class="tbtn" data-act="${act}" ${attrs}${aria?` aria-label="${aria}"`:""}>${label}</button>`;
+const tbtn=(act,label,attrs="",aria="",cls="")=>`<button type="button" class="tbtn${cls?" "+cls:""}" data-act="${act}" ${attrs}${aria?` aria-label="${aria}"`:""}>${label}</button>`;
 const stepper=(act,attrs,val,label,min,max)=>`<span class="stepper" role="group" aria-label="${label}">${tbtn(act,"−",`${attrs} data-d="-1"${val<=min?" disabled":""}`,`Fewer ${label.toLowerCase()}`)}<b>${val}</b>${tbtn(act,"+",`${attrs} data-d="1"${val>=max?" disabled":""}`,`More ${label.toLowerCase()}`)}</span>`;
+// The template's header card: how full it is, then Fill the rest / Start / New template / Print.
 function tplHead(){
-  const n=emptyCount(W), all=slotsOf(W).length;
-  return `<p class="tstat">${n?`<b>${n} of ${all}</b> slots empty`:"Every slot is filled"}${TPL_NOTE?` · ${TPL_NOTE}`:""}</p>
-  <div class="actions">${n?`<button type="button" data-act="fill">Fill the rest</button>`:""}<button class="go" id="start"${idsOf(W).length?"":" disabled"}>Start workout</button><button id="again">New template</button><button id="print"${idsOf(W).length?"":" disabled"}>Print</button></div>`;
+  const n=emptyCount(W), all=slotsOf(W).length, none=idsOf(W).length?"":" disabled";
+  return `<p class="tstat">${n?`<b>${n} of ${all}</b> slots empty`:"<b>Every slot is filled</b>"}${TPL_NOTE?`<small>${TPL_NOTE}</small>`:""}</p>
+  <div class="meter" aria-hidden="true"><span style="width:${all?Math.round((all-n)/all*100):0}%"></span></div>
+  <div class="actions">${n?`<button type="button" class="fillrest" data-act="fill">${ic("bolt")}Fill the rest</button>`:""}<button class="go" id="start"${none}>${ic("play")}Start workout</button><button id="again">${ic("redo")}New template</button><button id="print"${none}>${ic("print")}Print</button></div>`;
 }
 function slotHTML(x,where,section,ctl){
   const hint=PAT_LABEL[section==="warm"||section==="cool"?x.role:x.pat]||x.pat;
@@ -751,24 +779,25 @@ function slotHTML(x,where,section,ctl){
     const lv=lvOf(x,W), meta=section==="warm"?holdLabel(x.id,WARM_SECS):section==="cool"?holdLabel(x.id,COOL_SECS):`${reps(x.id,lv)} · ${LEVEL_NAMES[lv-1]}`;
     return row(x.id,meta,true,where,ctl);
   }
-  return `<div class="tslot"><span class="nm">Empty<small>${hint}</small></span><button class="choose" data-choose="${where}" aria-label="Choose a move for this ${hint} slot">Choose</button>${tbtn("auto","Auto",`data-where="${where}"`,`Fill this ${hint} slot automatically`)}${ctl}</div>`;
+  return `<div class="tslot"><span class="nm">Empty slot<small>${hint}</small></span><span class="racts"><button class="choose" data-choose="${where}" aria-label="Choose a move for this ${hint} slot">${ic("choose")}<span>Choose</span></button>${tbtn("auto",`${ic("bolt")}<span>Auto</span>`,`data-where="${where}"`,`Fill this ${hint} slot automatically`,"auto")}</span>${ctl}</div>`;
 }
 function tplSections(){
-  const ins=at=>`<div class="tins" role="group" aria-label="Add a block here">${mainCount(W)<MAX_MAIN?tbtn("addblock","+ Block",`data-kind="main" data-at="${at}"`):""}${tbtn("addblock","+ Obstacle course",`data-kind="course" data-at="${at}"`)}${tbtn("addblock","+ Grip block",`data-kind="grip" data-at="${at}"`)}</div>`;
-  const del=wh=>tbtn("del","×",`data-where="${wh}"`,"Remove this slot");
-  const phase=(key,title,note)=>`<section class="sec tsec"><h2>${title}</h2>
-    <div class="tbar"><span>Moves</span>${stepper(key+"count","",W[key].length,"Moves",1,MAX_PHASE)}</div><p class="note">${note}</p>
+  const add=label=>`${ic("plus")}${label}`;
+  const ins=at=>`<div class="tins" role="group" aria-label="Add a block here">${mainCount(W)<MAX_MAIN?tbtn("addblock",add("Block"),`data-kind="main" data-at="${at}"`):""}${tbtn("addblock",add("Obstacle course"),`data-kind="course" data-at="${at}"`)}${tbtn("addblock",add("Grip block"),`data-kind="grip" data-at="${at}"`)}</div>`;
+  const del=wh=>tbtn("del",ic("x"),`data-where="${wh}"`,"Remove this slot","del");
+  const phase=(key,title,note)=>`<section class="sec tsec k-${key}">${secHead(title)}
+    <div class="tbar"><span class="tround"><span>Moves</span>${stepper(key+"count","",W[key].length,"Moves",1,MAX_PHASE)}</span></div><p class="note">${note}</p>
     <div class="list">${W[key].map((x,i)=>slotHTML(x,`${key[0]}-${i}`,key,`<span class="tctl inl">${del(`${key[0]}-${i}`)}</span>`)).join("")}</div></section>`;
   let h=phase("warm","Warm-up","One after another, no rest.")+ins(0);
   W.blocks.forEach((b,bi)=>{
-    const ctl=ii=>`<span class="tctl">${tbtn("up","↑",`data-where="${bi}-${ii}"${ii?"":" disabled"}`,"Move up")}${tbtn("down","↓",`data-where="${bi}-${ii}"${ii<b.items.length-1?"":" disabled"}`,"Move down")}${del(`${bi}-${ii}`)}</span>`;
+    const ctl=ii=>`<span class="tctl">${tbtn("up",ic("up"),`data-where="${bi}-${ii}"${ii?"":" disabled"}`,"Move up")}${tbtn("down",ic("down"),`data-where="${bi}-${ii}"${ii<b.items.length-1?"":" disabled"}`,"Move down")}${del(`${bi}-${ii}`)}</span>`;
     const rest=`<label class="tsel">Rest <select data-act="rest" data-b="${bi}">${RESTS.map((r,i)=>`<option value="${i}"${b.rest&&b.rest.ex===r.ex&&b.rest.round===r.round?" selected":""}>${LEVEL_NAMES[i]}: ${r.ex}s / ${r.round}s</option>`).join("")}</select></label>`;
-    h+=`<section class="sec tsec"><h2>${b.name}</h2>
-      <div class="tbar">${b.kind==="course"?"":`<span>Rounds</span>${stepper("rounds",`data-b="${bi}"`,b.rounds,"Rounds",1,6)}${rest}`}
-        <span class="tmove">${tbtn("bup","↑",`data-b="${bi}"${bi?"":" disabled"}`,`Move ${b.name} up`)}${tbtn("bdown","↓",`data-b="${bi}"${bi<W.blocks.length-1?"":" disabled"}`,`Move ${b.name} down`)}${tbtn("bdel","Remove",`data-b="${bi}"`,`Remove ${b.name}`)}</span></div>
+    h+=`<section class="sec tsec k-${b.kind}">${secHead(b.name)}
+      <div class="tbar">${b.kind==="course"?"":`<span class="tround"><span>Rounds</span>${stepper("rounds",`data-b="${bi}"`,b.rounds,"Rounds",1,6)}</span>${rest}`}
+        <span class="tmove">${tbtn("bup",ic("up"),`data-b="${bi}"${bi?"":" disabled"}`,`Move ${b.name} up`)}${tbtn("bdown",ic("down"),`data-b="${bi}"${bi<W.blocks.length-1?"":" disabled"}`,`Move ${b.name} down`)}${tbtn("bdel",`${ic("trash")}<span>Remove</span>`,`data-b="${bi}"`,`Remove ${b.name}`,"del")}</span></div>
       ${b.kind==="course"?`<p class="note">${COURSE_NOTE}</p>`:""}
       <div class="list">${b.items.length?b.items.map((x,ii)=>slotHTML(x,`${bi}-${ii}`,b.kind,ctl(ii))).join(""):`<p class="note tnone">No moves yet.</p>`}</div>
-      ${tbtn("additem","+ Exercise",`data-b="${bi}"`,`Add a slot to ${b.name}`)}</section>${ins(bi+1)}`;
+      ${tbtn("additem",add("Exercise"),`data-b="${bi}"`,`Add a slot to ${b.name}`,"addrow")}</section>${ins(bi+1)}`;
   });
   return h+phase("cool","Cool-down",COOL_NOTE)+`<p class="foot">${FOOT}</p>`;
 }
@@ -781,7 +810,7 @@ function tplAct(b){
   tplSync();
   if(act==="auto"){
     const sec=ph[0]==="w"?"warm":ph[0]==="c"?"cool":W.blocks[+ph[0]].kind;
-    if(!autoFill(W,list[i],sec)){b.textContent="Nothing fits"; setTimeout(()=>b.textContent="Auto",1500); return}
+    if(!autoFill(W,list[i],sec)){const t=b.querySelector("span"); b.classList.add("says"); t.textContent="Nothing fits"; setTimeout(()=>{t.textContent="Auto"; b.classList.remove("says")},1500); return}
     focus=`.choose[data-choose="${wh}"]`;
   }
   else if(act==="fill"){const m=fillRest(W); TPL_NOTE=m?`${m} ${m===1?"slot":"slots"} found nothing that fits your equipment`:""; focus="#start"}
@@ -817,12 +846,14 @@ function keepsWork(){
 function build(mode=S.mode){
   if(!keepsWork()) return;
   W=mode==="template"?genTemplate(S):mode==="mix"?genMix(S):genQuick(S); save("fbw-workout",W); render();
-  plan.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  if(narrow.matches) fold(true);
+  (narrow.matches?setupEl:plan).scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
 }
 document.getElementById("build").onclick=()=>build();
 plan.addEventListener("change",e=>{if(e.target.dataset.act==="rest") tplRest(e.target)});
 W=loadW();
 render();
+if(W&&narrow.matches) fold(true);
 
 /* ---------- Follow-along ---------- */
 const F={seq:[],i:0,end:0,left:0,half:null,done:null,paused:false,t:null,lock:null};
@@ -848,32 +879,40 @@ function stopFollow(){
 const fmt=s=>{s=Math.max(0,Math.ceil(s));return s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`:String(s)};
 function nextSetName(from){for(let k=from;k<F.seq.length;k++) if(F.seq[k].id) return BY[F.seq[k].id].n; return null}
 function show(){
-  clearInterval(F.t); F.paused=false; F.half=null; F.done=null;
+  clearInterval(F.t); F.paused=false; F.half=null; F.done=null; fEl.classList.remove("paused");
   const st=F.seq[F.i];
+  document.getElementById("fback").disabled=F.i===0; document.getElementById("fskip").disabled=!st;
   if(!st){
     // Remember how long the run really took, so the evaluation can be pre-filled.
     if(F.run){W.lastRun={started_at:new Date(F.run.start).toISOString(),minutes:Math.max(1,Math.round((Date.now()-F.run.start-F.run.paused)/60000))}; F.run=null; save("fbw-workout",W);}
-    const mins=W.lastRun?` It took about ${W.lastRun.minutes} minutes.`:"";
-    fMain.innerHTML=`<p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session.${mins} Drink some water.</p>
-      ${API.on?(W.savedId?`<button class="evalnow" id="evalNow">Evaluate this workout</button>`:`<p class="fnext">Save the workout with a name to evaluate it.</p>`):""}`;
+    const m=W.lastRun&&W.lastRun.minutes, mins=m?` It took about ${m} ${m===1?"minute":"minutes"}.`:"";
+    fMain.className="fmain isdone";
+    fMain.innerHTML=`<div class="fdone"><span class="fdoneic">${ic("check")}</span><p class="fkind">Finished</p><h2 class="fname">Nice work.</h2><p class="fcue">That's the whole session.${mins} Drink some water.</p>
+      ${API.on?(W.savedId?`<button class="evalnow" id="evalNow">${ic("star")}Evaluate this workout</button>`:`<p class="fnext">Save the workout with a name to evaluate it.</p>`):""}</div>`;
     const en=document.getElementById("evalNow"); if(en) en.onclick=()=>{stopFollow(); openEval(W.savedId,W.name,estimateSecs(W))};
     fPos.textContent="Done"; fProg.style.width="100%"; fPrim.textContent="Close"; fPrim.onclick=()=>{stopFollow(); render()}; beep(990,.3); return;}
   fPos.textContent=`Step ${F.i+1} of ${F.seq.length}`;
   fProg.style.width=(F.i/F.seq.length*100)+"%";
-  fMain.classList.toggle("isjump",!!(st.id&&isJump(st.id)));
+  // Layout: .fhead (section, name), .fclock (the big number, a draining bar for countdowns), .fcue, "How to do it".
+  const jump=!!(st.id&&isJump(st.id)), bar=`<div class="fbar" aria-hidden="true"><span id="fbarfill"></span></div>`;
+  fMain.className=`fmain${jump?" isjump":""}${st.k==="rest"?" isrest":""}`;
   if(st.k==="rest"){
     const nx=nextSetName(F.i+1);
-    fMain.innerHTML=`<p class="fkind">${st.sec}</p><h2 class="fname">Rest</h2><p class="fbig" id="fclock">${fmt(st.secs)}</p>
-      ${nx?`<p class="fnext">Next up: <b>${nx}</b></p>`:""}`;
+    fMain.innerHTML=`<div class="fhead"><p class="fkind">${st.sec}</p><h2 class="fname">Rest</h2></div>
+      <div class="fclock"><p class="fbig" id="fclock">${fmt(st.secs)}</p>${bar}
+      ${nx?`<p class="fnext">Next up: <b>${nx}</b></p>`:""}</div>`;
     fPrim.textContent="Skip rest"; fPrim.onclick=()=>{F.i++;show()};
     countdown(st.secs);
   } else {
     const ex=BY[st.id];
-    fMain.innerHTML=`<p class="fkind">${st.sec}${isJump(st.id)?". Plyo: full effort, every rep":""}</p>
-      <h2 class="fname">${ex.n}</h2>
-      ${st.k==="timed"?`<p class="fbig" id="fclock">${fmt(st.secs)}</p>${ex.sw?'<p class="fnext" id="fswitch">Switch sides halfway</p>':""}`:`<p class="fbig" id="fclock">${st.reps}</p><p class="fnext" id="fswitch"></p>`}
+    // Long prescriptions ("40 double-unders + 15 push-ups, x3") get a smaller size so they still fit.
+    const big=st.k==="timed"?fmt(st.secs):String(st.reps), size=big.length>14?" xlong":big.length>5?" long":"", hold=/^(\d+)s( each side)?$/.test(st.reps||"");
+    fMain.innerHTML=`<div class="fhead"><p class="fkind">${st.sec}</p>${jump?`<p class="fplyo">${ic("bolt")}Plyo: full effort, every rep</p>`:""}
+      <h2 class="fname">${ex.n}</h2></div>
+      <div class="fclock"><p class="fbig${size}" id="fclock">${big}</p>${st.k==="timed"||hold?bar:""}
+      ${st.k==="timed"?(ex.sw?'<p class="fnext fswitch" id="fswitch">Switch sides halfway</p>':""):'<p class="fnext fswitch" id="fswitch"></p>'}</div>
       <p class="fcue">${ex.c}</p>
-      <details${st.k==="set"?"":""}><summary>How to do it</summary>${howHTML(ex)}</details>`;
+      <details class="fhow"><summary>${ic("chev")}How to do it</summary>${howHTML(ex)}</details>`;
     if(st.k==="timed"){F.half=ex.sw?st.secs/2:null; fPrim.textContent="Pause"; fPrim.onclick=togglePause; countdown(st.secs);}
     else {
       // Timed holds ("30s", "20s each side") get a timer: 5 s to get in position, then the hold.
@@ -893,12 +932,15 @@ function show(){
   }
   fMain.scrollTop=0;
 }
-function countdown(secs,done){
+function countdown(secs,done,total=secs){
   if(done) F.done=done;
-  F.end=Date.now()+secs*1000;
+  F.end=Date.now()+secs*1000; F.total=total;
+  const fill=()=>{const b=document.getElementById("fbarfill"); if(b) b.style.width=Math.max(0,(F.end-Date.now())/1000/F.total*100)+"%"};
+  fill();
   F.t=setInterval(()=>{
     const left=(F.end-Date.now())/1000, c=document.getElementById("fclock");
     if(c) c.textContent=fmt(left);
+    fill();
     if(F.half&&left<=F.half){F.half=null; beep(880,.25); const w=document.getElementById("fswitch"); if(w) w.innerHTML="<b>Switch sides now</b>";}
     if(left<=3.05&&left>2.8||left<=2.05&&left>1.8||left<=1.05&&left>.8) beep(660,.06);
     if(left<=0){clearInterval(F.t); beep(990,.2); if(F.done){const d=F.done;F.done=null;d()} else {F.i++; show();}}
@@ -906,7 +948,8 @@ function countdown(secs,done){
 }
 function togglePause(){
   if(!F.paused){F.left=(F.end-Date.now())/1000; clearInterval(F.t); F.paused=true; F.pausedAt=Date.now(); fPrim.textContent="Resume";}
-  else {F.paused=false; if(F.run) F.run.paused+=Date.now()-F.pausedAt; fPrim.textContent="Pause"; countdown(F.left);}
+  else {F.paused=false; if(F.run) F.run.paused+=Date.now()-F.pausedAt; fPrim.textContent="Pause"; countdown(F.left,null,F.total);}
+  fEl.classList.toggle("paused",F.paused);
 }
 document.getElementById("fclose").onclick=stopFollow;
 document.getElementById("fback").onclick=()=>{if(F.i>0){F.i--; if(F.seq[F.i].k==="rest"&&F.i>0) F.i--; show();}};
@@ -979,11 +1022,11 @@ async function saveDraftNow(){
 function evalsHTML(){
   if(!API.on||!W.savedId||!W.sessions||!W.sessions.length) return "";
   const crit=DATA.criteria||[];
-  return `<section class="sec"><h2>Your evaluations</h2><ul class="evals">${W.sessions.map(s=>{
-    const d=s.delta_seconds, mins=s.active_seconds?Math.round(s.active_seconds/60):null;
-    return `<li><b>${dateLabel(s.started_at)}</b> ${s.stars?`<span class="stars" aria-label="${s.stars} of 5 stars">${stars(s.stars)}</span>`:""}
-      <small>${mins?`${mins} min (${d>0?"+":""}${Math.round(d/60)} vs estimate)`:"Time not recorded"}${s.time_feel?`, felt ${FEEL[s.time_feel].toLowerCase()}`:""}${s.completed?"":", not finished"}</small>
-      ${crit.filter(c=>s.scores[c.code]).length?`<small>${crit.filter(c=>s.scores[c.code]).map(c=>`${esc(c.name)} ${s.scores[c.code]}/5`).join(" · ")}</small>`:""}
+  return `<section class="sec">${secHead("Your evaluations",`${W.sessions.length}`)}<ul class="evals">${W.sessions.map(s=>{
+    const d=s.delta_seconds, mins=s.active_seconds?Math.round(s.active_seconds/60):null, sc=crit.filter(c=>s.scores[c.code]);
+    return `<li><div class="evhead"><b>${dateLabel(s.started_at)}</b>${s.stars?`<span class="stars" aria-label="${s.stars} of 5 stars">${stars(s.stars)}</span>`:""}</div>
+      <small>${mins?`${mins} min (${d>0?"+":""}${Math.round(d/60)} vs estimate)`:"Time not recorded"}${s.time_feel?`, felt ${FEEL[s.time_feel].toLowerCase()}`:""}${s.completed?"":`, <span class="unfinished">not finished</span>`}</small>
+      ${sc.length?`<div class="scores">${sc.map(c=>`<span>${esc(c.name)} <b>${s.scores[c.code]}</b>/5</span>`).join("")}</div>`:""}
       ${s.comments.map(c=>`<q>${esc(c)}</q>`).join("")}</li>`}).join("")}</ul></section>`;
 }
 
@@ -995,10 +1038,10 @@ async function loadSaved(){
   try{[list,drafts]=await Promise.all([call("GET","workouts"),call("GET","drafts")])}catch(x){savedEl.hidden=false; savedEl.innerHTML=`<p class="err">Couldn't load saved workouts: ${esc(x.message)}</p>`; return}
   savedEl.hidden=false;
   const count=[list.length&&`${list.length} saved`,drafts.length&&`${drafts.length} ${drafts.length===1?"draft":"drafts"}`].filter(Boolean).join(", ");
-  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary><span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true"></span></summary>
-    ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li><div class="nm">${esc(d.name)}<small>Draft · changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
-      <div class="rowbtns"><button data-opendraft="${d.id}">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del">Delete</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}<br>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
-      <div class="rowbtns"><button data-open="${w.id}">Open</button><button data-print="${w.id}">Print</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">Evaluate</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del">Delete</button></div></li>`).join("")}</ul>`
+  savedEl.innerHTML=`<details id="savedBox"${savedOpen?" open":""}><summary>${ic("save")}<span class="nm">Saved workouts<small>${count||"Nothing saved yet"}</small></span><span class="chev" aria-hidden="true">${ic("chev")}</span></summary>
+    ${list.length||drafts.length?`<ul class="savedlist">${drafts.map(d=>`<li class="isdraft"><div class="nm"><span class="badge">Draft</span>${esc(d.name)}<small>Changed ${dateLabel(d.updated_at)} · ${d.empty?`${d.empty} of ${d.slots} slots empty`:"every slot filled"}</small></div>
+      <div class="rowbtns"><button data-opendraft="${d.id}" class="open">Open</button><button data-deldraft="${d.id}" data-name="${esc(d.name)}" class="del" aria-label="Delete the draft ${esc(d.name)}">${ic("trash")}</button></div></li>`).join("")}${list.map(w=>`<li><div class="nm">${esc(w.name)}<small>${dateLabel(w.created_at)} · ${LEVEL_NAMES[w.level-1]} · ${w.blocks} block${w.blocks===1?"":"s"}</small><small>${w.sessions?`${w.sessions} evaluation${w.sessions>1?"s":""}${w.avg_stars?` · <span class="stars">${stars(w.avg_stars)}</span> ${w.avg_stars}`:""}`:"Not evaluated yet"}</small></div>
+      <div class="rowbtns"><button data-open="${w.id}" class="open">Open</button><button data-eval="${w.id}" data-name="${esc(w.name)}" data-est="${w.estimated_seconds}">${ic("star")}Evaluate</button><button data-print="${w.id}" aria-label="Print ${esc(w.name)}">${ic("print")}</button><button data-del="${w.id}" data-name="${esc(w.name)}" class="del" aria-label="Delete ${esc(w.name)}">${ic("trash")}</button></div></li>`).join("")}</ul>`
       :`<p class="note">Build a workout and save it with a name; it will show up here.</p>`}</details>`;
   document.getElementById("savedBox").addEventListener("toggle",e=>savedOpen=e.target.open);
 }
@@ -1053,11 +1096,11 @@ function openEval(id,name,estSecs){
     <p class="hint">Estimated about ${Math.round(estSecs/60)} minutes in total.${run?" Pre-filled from your follow-along run.":""}</p>
     <label class="check"><input type="checkbox" name="completed" checked> I finished the whole workout</label>
     ${pickHTML("feel",Object.entries(FEEL),"The length felt")}
-    ${pickHTML("stars",[1,2,3,4,5].map(n=>[n,`${n} ★`]),"Overall rating, 1 to 5 stars")}
+    ${pickHTML("stars",[1,2,3,4,5].map(n=>[n,`${n}${ic("star")}`]),"Overall rating, 1 to 5 stars")}
     ${(DATA.criteria||[]).map(c=>`<fieldset class="pick crit"><legend>${esc(c.name)}</legend><div class="scale"><div class="seg">${[1,2,3,4,5].map(n=>`<label><input type="radio" name="c_${c.code}" value="${n}"><span>${n}</span></label>`).join("")}</div><div class="ends"><small>1: ${esc(c.low)}</small><small>5: ${esc(c.high)}</small></div></div></fieldset>`).join("")}
     <label>Comment<textarea name="comment" rows="3" maxlength="2000" placeholder="What worked, what didn't, what to change next time"></textarea></label>
     <p class="err" id="evalErr" role="alert"></p>
-    <div class="actions"><button type="button" id="evalCancel">Cancel</button><button class="go" value="save">Save evaluation</button></div></form>`;
+    <div class="actions dlgbar"><button type="button" id="evalCancel">Cancel</button><button class="go" value="save">Save evaluation</button></div></form>`;
   document.getElementById("evalCancel").onclick=()=>dlg.close();
   document.getElementById("evalForm").onsubmit=async e=>{
     e.preventDefault();

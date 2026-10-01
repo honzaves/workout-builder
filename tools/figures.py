@@ -71,7 +71,7 @@ def engine_js() -> str:
 
 
 PAGE_CSS = """
-.wrap{max-width:1080px}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 18px 64px}
 .rv{margin:0 0 36px}
 .rv h2{font-size:28px;font-weight:700;margin:0 0 2px;line-height:1.1}
 .rv .meta{font-size:14px;color:var(--muted);margin:0 0 10px}
@@ -80,7 +80,7 @@ PAGE_CSS = """
 .rv .grid li{background:var(--surface);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .rv .grid li.wide{grid-column:span 2}
 .rv .cap{display:flex;gap:8px;font-size:14px;line-height:1.35;margin:0}
-.rv .cap b{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-size:18px;line-height:1;color:var(--muted);min-width:12px}
+.rv .cap b{font-family:var(--font);font-weight:700;font-size:16px;line-height:1;color:var(--muted);min-width:12px}
 .rv .none{font-size:15px;color:var(--muted);margin:0}
 """
 

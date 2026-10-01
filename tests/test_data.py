@@ -71,7 +71,7 @@ def test_build_produces_self_contained_html():
     assert 'src="js/app.js"' not in html
     assert "window.WORKOUT_DATA" in html
     # Fully offline: fonts embedded, nothing fetched from other sites.
-    assert html.count("data:font/woff2;base64,") == 6
+    assert html.count("data:font/woff2;base64,") == 1  # Inter, one variable file
     assert "../fonts/" not in html and "googleapis" not in html
     # The inlined data is the database catalogue.
     start = html.index("window.WORKOUT_DATA = ") + len("window.WORKOUT_DATA = ")
