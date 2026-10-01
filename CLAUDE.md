@@ -16,6 +16,7 @@ python3 tools/serve.py --dist           # serve the built file
 python3 tools/validate.py               # check the catalogue in db/workouts.db; run after every data edit (--db other.db)
 python3 tools/figures.py review         # dist/figures-review.html: drawings next to their steps (--ids a,b / --pattern squat)
 python3 tools/figures.py put f.json     # add/replace poses and drawings; validated, rolled back on errors
+uv run --with playwright python tools/redesign_package.py   # UI redesign package: dist/redesign/ + zip (brief docs/redesign/SPEC.md, screenshots of every state; needs Google Chrome)
 python3 tools/db_import.py              # one-time seed of a missing DB from the historical exercises.json (refuses on a filled DB without --force)
 uv run --with pytest pytest            # all tests (pytest.ini sets testpaths=tests, pythonpath=.)
 uv run --with pytest pytest tests/test_data.py::test_build_produces_self_contained_html   # single test
