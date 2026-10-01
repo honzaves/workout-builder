@@ -26,7 +26,7 @@ Decisions from the review questions:
 ## 2. Assumptions to confirm
 
 - **A1, Mix: four exercises per block.** The requirement says 1 → 2 → 3 → 4, so a Mix block has four slots: the block's three `TEMPL` patterns plus one extra pattern (rotating through `core`, `plyoL`, `push`, `pull`, skipping ones already in the block). Exercises run in level order, so "plyo moves come first" no longer applies in this mode.
-- **A2, Mix: who gets level 4.** Level 4 is thin for some patterns (see §5.2): lunge has 1 exercise at level 4, and none without equipment. Levels are assigned to patterns *after* checking what's available with the user's equipment: level 4 goes to the pattern with the most level-4 candidates, and so on down. If no exercise exists at the exact level, fall back to the nearest level below, then above. The on-screen level chip shows the real level.
+- **A2, Mix: who gets level 4.** Level 4 is thinner than the other levels for some patterns (see §5.2), e.g. pull has a single bodyweight solo exercise at level 4. Levels are assigned to patterns *after* checking what's available with the user's equipment: level 4 goes to the pattern with the most level-4 candidates, and so on down. If no exercise exists at the exact level, fall back to the nearest level below, then above. The on-screen level chip shows the real level.
 - **A3, Mix: the Level control** sets rest times and rounds per block only (it no longer filters exercises). Each exercise shows the reps for its own level.
 - **A4, Template: rest times.** Each block has rounds (1–6, default 3) and a rest setting with four presets taken from the `level` table (Beginner 30 s/90 s … Beast 10 s/60 s), default Intermediate. The obstacle course keeps its 60–90 s between runs.
 - **A5, Template: auto-fill level.** "Fill this slot" and "Fill the rest" need a level. In Template mode the Level control is relabelled **Auto-fill level** and is used only by the automatic buttons; hand-picked exercises get their level in the picker.
@@ -152,18 +152,18 @@ No change in behaviour. Code moves into `genQuick(s)`, returning the version 2 s
 
 `genMix(s)`: for each block, take its `TEMPL` patterns plus the extra pattern (A1), count the candidates per pattern and level with the user's equipment and partner setting, assign levels 1–4 to patterns (A2), pick each with `pick()` using a *target level* (weighting only exact matches, fallback nearest), then sort the items by level.
 
-Level coverage today (active exercises, any equipment / bodyweight solo):
+Level coverage (active exercises, any equipment / bodyweight solo; level 4 updated after adding 37 level-4 moves on 2026-10-01):
 
 | Pattern | L1 | L2 | L3 | L4 |
 |---|---|---|---|---|
-| plyoL | 26 / 10 | 65 / 20 | 53 / 14 | 10 / 2 |
-| plyoU | 10 / 2 | 27 / 1 | 21 / 2 | 2 / 1 |
-| squat | 26 / 3 | 16 / 2 | 26 / 4 | 6 / 1 |
-| hinge | 30 / 3 | 41 / 4 | 20 / 1 | 5 / 1 |
-| lunge | 18 / 4 | 46 / 3 | 20 / 1 | 1 / 0 |
-| push | 31 / 2 | 40 / 6 | 39 / 7 | 14 / 4 |
-| pull | 30 / 3 | 24 / 1 | 23 / 1 | 12 / 1 |
-| core | 50 / 7 | 99 / 7 | 58 / 4 | 13 / 2 |
+| plyoL | 26 / 10 | 65 / 20 | 53 / 14 | 20 / 7 |
+| plyoU | 10 / 2 | 27 / 1 | 21 / 2 | 9 / 4 |
+| squat | 26 / 3 | 16 / 2 | 26 / 4 | 13 / 4 |
+| hinge | 30 / 3 | 41 / 4 | 20 / 1 | 10 / 2 |
+| lunge | 18 / 4 | 46 / 3 | 20 / 1 | 9 / 3 |
+| push | 31 / 2 | 40 / 6 | 39 / 7 | 18 / 7 |
+| pull | 30 / 3 | 24 / 1 | 23 / 1 | 13 / 1 |
+| core | 50 / 7 | 99 / 7 | 58 / 4 | 19 / 5 |
 
 `validate.py` gets a warning (not an error) when a pattern used in `TEMPL` has no bodyweight solo exercise at some level, so gaps show up as the catalogue grows.
 

@@ -1,6 +1,6 @@
 # Level 4 (Beast) exercise ideas
 
-Suggestions to fill level 4, which is thin for several patterns (see `docs/design-workout-modes.md` §5.2, needed by the Mix levels mode). Checked against the whole catalogue (all levels) on 2026-09-30.
+Suggestions to fill level 4, which is thin for several patterns (see `docs/design-workout-modes.md` §5.2, needed by the Mix levels mode). Checked against the whole catalogue (all levels) on 2026-09-30. **All New and Variant ideas (37) were added on 2026-10-01**; only the 8 marked Exists were left out.
 
 - **New**: nothing similar in the catalogue.
 - **Variant**: a harder version of an existing move (named); would be added as its own level-4 exercise.
