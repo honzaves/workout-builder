@@ -119,4 +119,6 @@ The logo is a jumping jack in mid-air on a rounded ink tile with the head in `--
 - From 1024px the picker shows the detail beside the list and keeps it while searching or filtering.
 - Swap and Auto show their "No other options" / "Nothing fits" text even when their label is hidden (class `says`).
 
+Browser support: the layout uses container queries (narrow / wide move rows), `:has()` (template toolbars, warm-up rows, 4-option groups), `dvh` units and `color-mix()` (hover tints, slot stripes). These need Safari / iOS 16.2+, Chrome 111+ or Firefox 121+. Older browsers fall back to labelled Swap / Choose buttons on the name line; the follow-along screen uses none of these.
+
 Not done: confirmation prompts (replace a template, remove a block, delete) still use the browser's `confirm()`; a styled dialog would need a promise-based replacement.
